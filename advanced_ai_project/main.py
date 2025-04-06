@@ -1,4 +1,3 @@
-import re
 import torch
 import torch.nn as nn
 from tqdm import tqdm
@@ -53,17 +52,23 @@ model = MLPLangModel(input_dim, 8, 256, out_dim, 4, 0.1, True).to(device)
 optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
 loss_fn = nn.CrossEntropyLoss()
 
+sample_dataset = "The quick brown fox jumps over the lazy dog."
+
 
 def main():
     loss = None
+    dataset_length = len(sample_dataset)
+
     for _ in tqdm(range(num_epochs)):
-        inputs = torch.randint(0, out_dim, (batch_size,)).to(device)
-        targets = inputs.clone()
-        binary_inputs = binary_encode_numbers(inputs, input_dim)
+        indices = torch.randint(0, dataset_length, (batch_size,)).to(device)
+        encoded_indices = binary_encode_numbers(indices, input_dim)
 
-        result = model(binary_inputs)
+        # ASCII values of characters at indices
+        targets = torch.tensor([ord(sample_dataset[i]) for i in indices], device=device)
+
+        result = model(encoded_indices)
+
         loss = loss_fn(result, targets)
-
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -73,15 +78,10 @@ def main():
 
     model.eval()
     with torch.no_grad():
-        try:
-            while True:
-                num_input = torch.tensor(int(input("Enter a number: ")), device=device)
-                encoded_input = binary_encode_numbers(num_input, input_dim)
-                result = model(encoded_input)
+        encoded_input = binary_encode_numbers(
+            torch.arange(0, len(sample_dataset) * 2, device=device), input_dim
+        )
+        result = model(encoded_input)
 
-                predicted = torch.argmax(result, dim=0)
-                print(f"Actual: {num_input.item()}")
-                print(f"Encoded Input: {encoded_input}")
-                print(f"Predicted: {predicted.item()}")
-        except (KeyboardInterrupt, EOFError):
-            pass
+        predicted = [chr(int(x.item())) for x in torch.argmax(result, dim=1)]
+        print(f"Predicted string: {''.join(predicted)}")
