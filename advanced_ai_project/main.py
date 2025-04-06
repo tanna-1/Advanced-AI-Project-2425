@@ -73,11 +73,15 @@ def main():
 
     model.eval()
     with torch.no_grad():
-        num_input = torch.tensor(int(input("Enter a number: ")), device=device)
-        encoded_input = binary_encode_numbers(num_input, input_dim)
-        result = model(encoded_input)
+        try:
+            while True:
+                num_input = torch.tensor(int(input("Enter a number: ")), device=device)
+                encoded_input = binary_encode_numbers(num_input, input_dim)
+                result = model(encoded_input)
 
-        predicted = torch.argmax(result, dim=0)
-        print(f"Actual: {num_input.item()}")
-        print(f"Encoded Input: {encoded_input}")
-        print(f"Predicted: {predicted.item()}")
+                predicted = torch.argmax(result, dim=0)
+                print(f"Actual: {num_input.item()}")
+                print(f"Encoded Input: {encoded_input}")
+                print(f"Predicted: {predicted.item()}")
+        except (KeyboardInterrupt, EOFError):
+            pass
