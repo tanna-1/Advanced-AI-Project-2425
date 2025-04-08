@@ -5,8 +5,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from .dataset import CharIndexDataset
-from .encoders import binary_encode_numbers
-from .blocks import InvertedBottleneckMLP
+from .blocks import InvertedBottleneckMLP, BinaryEncode
 from .utils import get_torch_device
 
 
@@ -23,6 +22,7 @@ class MLPLangModel(nn.Module):
     ):
         super().__init__()
         self.seq = nn.Sequential(
+            BinaryEncode(input_dim),
             nn.Linear(input_dim, hidden_width),
             *[
                 InvertedBottleneckMLP(hidden_width, expansion_factor, dropout, use_selu)
@@ -68,8 +68,7 @@ def main():
             inputs = inputs.to(device)
             targets = targets.to(device)
 
-            encoded_inputs = binary_encode_numbers(inputs, input_dim)
-            result = model(encoded_inputs)
+            result = model(inputs)
 
             loss = loss_fn(result, targets)
             loss_history.append(loss.item())
@@ -87,8 +86,7 @@ def main():
 
         def evaluate(idx, length):
             inputs = torch.arange(idx, idx + length, device=device)
-            encoded_input = binary_encode_numbers(inputs, input_dim)
-            result = model(encoded_input)
+            result = model(inputs)
 
             predicted = [chr(int(x.item())) for x in torch.argmax(result, dim=1)]
             print(

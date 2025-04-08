@@ -1,5 +1,17 @@
+import torch
 import torch.nn as nn
 from .dropout import ConditionalAlphaDropout, ConditionalDropout
+
+
+class BinaryEncode(nn.Module):
+    def __init__(self, num_bits: int, dtype: torch.dtype = torch.float32):
+        super().__init__()
+        self.__num_bits = num_bits
+        self.__dtype = dtype
+
+    def forward(self, x):
+        arange = torch.arange(self.__num_bits, device=x.device)
+        return ((x.unsqueeze(-1) & (1 << arange)) > 0).to(dtype=self.__dtype)
 
 
 # Residual Inverted Bottleneck Block
