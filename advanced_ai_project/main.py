@@ -1,4 +1,5 @@
 import collections
+from torch.utils.data import Dataset
 import torch
 import torch.nn as nn
 import optuna
@@ -11,8 +12,12 @@ from .utils import get_torch_device
 
 OUT_DIM = 256
 INPUT_BIT_WIDTH = 64
+HIDDEN_DEPTH = 16
+HIDDEN_WIDTH = 512
+
 DEVICE = get_torch_device()
-DATASET = CharIndexDataset("../item.csv", 20_000_000)
+OPT_DATASET = CharIndexDataset("../item.csv", 20_000_000)
+FULL_DATASET = CharIndexDataset("../item.csv", 2_000_000_000)
 
 
 class MLPLangModel(nn.Module):
@@ -57,6 +62,7 @@ class MLPLangModel(nn.Module):
 # Returns the average loss over the last N batches
 def train_model(
     model: nn.Module,
+    dataset: Dataset,
     optimizer: torch.optim.Optimizer,
     num_epochs: int,
     batch_size: int,
@@ -68,7 +74,7 @@ def train_model(
     loss_history = collections.deque(maxlen=return_loss_over_n)
 
     # Shuffle is enabled for now, need to check if it's useful
-    dataloader = DataLoader(DATASET, batch_size=batch_size, pin_memory=True)
+    dataloader = DataLoader(dataset, batch_size=batch_size, pin_memory=True)
 
     for _ in tqdm(range(num_epochs)):
         for inputs, targets in tqdm(dataloader):
@@ -100,7 +106,7 @@ def evaluate_model(model: nn.Module):
                 f"Predicted string from {idx} to {idx+length}: {repr(''.join(predicted))}"
             )
 
-        last_idx = len(DATASET) - 1
+        last_idx = len(FULL_DATASET) - 1
         _eval(0, 100)
         _eval(last_idx - 100, 100)
 
@@ -112,8 +118,8 @@ def optuna_objective(trial: optuna.Trial) -> float:
 
     model = MLPLangModel(
         input_bit_width=INPUT_BIT_WIDTH,
-        hidden_depth=8,
-        hidden_width=256,
+        hidden_depth=HIDDEN_DEPTH,
+        hidden_width=HIDDEN_WIDTH,
         out_dim=OUT_DIM,
         expansion_factor=trial.suggest_float("expansion_factor", 1.0, 4.0, step=0.5),
         dropout=trial.suggest_float("dropout", 0.0, 0.5, step=0.1),
@@ -125,6 +131,7 @@ def optuna_objective(trial: optuna.Trial) -> float:
 
     return train_model(
         model,
+        OPT_DATASET,
         optimizer,
         num_epochs=2,
         batch_size=trial.suggest_int("batch_size", 32, 8192),
@@ -141,8 +148,8 @@ def main():
 
     model = MLPLangModel(
         input_bit_width=INPUT_BIT_WIDTH,
-        hidden_depth=8,
-        hidden_width=256,
+        hidden_depth=HIDDEN_DEPTH,
+        hidden_width=HIDDEN_WIDTH,
         out_dim=OUT_DIM,
         expansion_factor=study.best_params["expansion_factor"],
         dropout=study.best_params["dropout"],
@@ -152,6 +159,7 @@ def main():
 
     avg_loss = train_model(
         model,
+        FULL_DATASET,
         optimizer,
         num_epochs=10,
         batch_size=study.best_params["batch_size"],
