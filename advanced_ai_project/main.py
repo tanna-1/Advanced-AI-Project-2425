@@ -106,6 +106,10 @@ def evaluate_model(model: nn.Module):
 
 
 def optuna_objective(trial: optuna.Trial) -> float:
+    # Fix the random seed for optimization of hyperparameters
+    torch.manual_seed(0)
+    torch.use_deterministic_algorithms(True)
+
     model = MLPLangModel(
         input_bit_width=INPUT_BIT_WIDTH,
         hidden_depth=8,
