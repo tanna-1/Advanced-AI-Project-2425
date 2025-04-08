@@ -1,7 +1,10 @@
+import collections
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from .dataset import CharIndexDataset
 from .encoders import binary_encode_numbers
 from .blocks import InvertedBottleneckMLP
 from .utils import get_torch_device
@@ -33,7 +36,7 @@ class MLPLangModel(nn.Module):
     def _initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Linear):
-                nn.init.kaiming_normal_(m.weight, mode="fan_in", nonlinearity="selu")
+                nn.init.kaiming_normal_(m.weight)
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
 
@@ -41,47 +44,57 @@ class MLPLangModel(nn.Module):
         return self.seq(x)
 
 
-out_dim = 256
-input_dim = 64
-batch_size = 32
-num_epochs = 2000
-lr = 1e-3
-
-device = get_torch_device()
-model = MLPLangModel(input_dim, 8, 256, out_dim, 4, 0.1, True).to(device)
-optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
-loss_fn = nn.CrossEntropyLoss()
-
-sample_dataset = "The quick brown fox jumps over the lazy dog."
-
-
 def main():
-    loss = None
-    dataset_length = len(sample_dataset)
+    out_dim = 256
+    input_dim = 64
+    batch_size = 4096
+    num_epochs = 2
+    lr = 1e-3
+
+    device = get_torch_device()
+    model = MLPLangModel(input_dim, 8, 256, out_dim, 4, 0.1, True).to(device)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+    loss_fn = nn.CrossEntropyLoss()
+    dataset = CharIndexDataset("../item.csv", 20_000_0)
+
+    # Last 10 losses
+    loss_history = collections.deque(maxlen=100)
+
+    # Shuffle is enabled for now, need to check if it's useful
+    dataloader = DataLoader(dataset, batch_size=batch_size, pin_memory=True)
 
     for _ in tqdm(range(num_epochs)):
-        indices = torch.randint(0, dataset_length, (batch_size,)).to(device)
-        encoded_indices = binary_encode_numbers(indices, input_dim)
+        for inputs, targets in tqdm(dataloader):
+            inputs = inputs.to(device)
+            targets = targets.to(device)
 
-        # ASCII values of characters at indices
-        targets = torch.tensor([ord(sample_dataset[i]) for i in indices], device=device)
+            encoded_inputs = binary_encode_numbers(inputs, input_dim)
+            result = model(encoded_inputs)
 
-        result = model(encoded_indices)
+            loss = loss_fn(result, targets)
+            loss_history.append(loss.item())
 
-        loss = loss_fn(result, targets)
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-    if loss:
-        print(f"Loss: {loss.item()}")
+    print(
+        f"Average loss over the last {len(loss_history)} batches: {sum(loss_history) / len(loss_history)}"
+    )
 
     model.eval()
     with torch.no_grad():
-        encoded_input = binary_encode_numbers(
-            torch.arange(0, len(sample_dataset) * 2, device=device), input_dim
-        )
-        result = model(encoded_input)
 
-        predicted = [chr(int(x.item())) for x in torch.argmax(result, dim=1)]
-        print(f"Predicted string: {''.join(predicted)}")
+        def evaluate(idx, length):
+            inputs = torch.arange(idx, idx + length, device=device)
+            encoded_input = binary_encode_numbers(inputs, input_dim)
+            result = model(encoded_input)
+
+            predicted = [chr(int(x.item())) for x in torch.argmax(result, dim=1)]
+            print(
+                f"Predicted string from {idx} to {idx+length}: {repr(''.join(predicted))}"
+            )
+
+        last_idx = len(dataset) - 1
+        evaluate(0, 100)
+        evaluate(last_idx - 100, 100)
