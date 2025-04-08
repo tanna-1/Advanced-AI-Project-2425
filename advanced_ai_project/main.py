@@ -1,6 +1,7 @@
 import collections
 import torch
 import torch.nn as nn
+import optuna
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -8,11 +9,16 @@ from .dataset import CharIndexDataset
 from .blocks import InvertedBottleneckMLP, BinaryEncode
 from .utils import get_torch_device
 
+OUT_DIM = 256
+INPUT_BIT_WIDTH = 64
+DEVICE = get_torch_device()
+DATASET = CharIndexDataset("../item.csv", 20_000_000)
+
 
 class MLPLangModel(nn.Module):
     def __init__(
         self,
-        input_dim: int,
+        input_bit_width: int,
         hidden_depth: int,
         hidden_width: int,
         out_dim: int,
@@ -21,9 +27,13 @@ class MLPLangModel(nn.Module):
         use_selu: bool = False,
     ):
         super().__init__()
+
+        # Hidden depth is reduced based on the expansion factor to avoid incorrect optimization of hyperparameters
+        hidden_depth = int(hidden_depth // (expansion_factor + 1))
+
         self.seq = nn.Sequential(
-            BinaryEncode(input_dim),
-            nn.Linear(input_dim, hidden_width),
+            BinaryEncode(input_bit_width),
+            nn.Linear(input_bit_width, hidden_width),
             *[
                 InvertedBottleneckMLP(hidden_width, expansion_factor, dropout, use_selu)
                 for _ in range(hidden_depth)
@@ -44,29 +54,26 @@ class MLPLangModel(nn.Module):
         return self.seq(x)
 
 
-def main():
-    out_dim = 256
-    input_dim = 64
-    batch_size = 4096
-    num_epochs = 2
-    lr = 1e-3
-
-    device = get_torch_device()
-    model = MLPLangModel(input_dim, 8, 256, out_dim, 4, 0.1, True).to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+# Returns the average loss over the last N batches
+def train_model(
+    model: nn.Module,
+    optimizer: torch.optim.Optimizer,
+    num_epochs: int,
+    batch_size: int,
+    return_loss_over_n: int = 100,
+):
     loss_fn = nn.CrossEntropyLoss()
-    dataset = CharIndexDataset("../item.csv", 20_000_0)
 
-    # Last 10 losses
-    loss_history = collections.deque(maxlen=100)
+    # Last N losses
+    loss_history = collections.deque(maxlen=return_loss_over_n)
 
     # Shuffle is enabled for now, need to check if it's useful
-    dataloader = DataLoader(dataset, batch_size=batch_size, pin_memory=True)
+    dataloader = DataLoader(DATASET, batch_size=batch_size, pin_memory=True)
 
     for _ in tqdm(range(num_epochs)):
         for inputs, targets in tqdm(dataloader):
-            inputs = inputs.to(device)
-            targets = targets.to(device)
+            inputs = inputs.to(DEVICE)
+            targets = targets.to(DEVICE)
 
             result = model(inputs)
 
@@ -77,15 +84,15 @@ def main():
             loss.backward()
             optimizer.step()
 
-    print(
-        f"Average loss over the last {len(loss_history)} batches: {sum(loss_history) / len(loss_history)}"
-    )
+    return sum(loss_history) / len(loss_history)
 
+
+def evaluate_model(model: nn.Module):
     model.eval()
     with torch.no_grad():
 
-        def evaluate(idx, length):
-            inputs = torch.arange(idx, idx + length, device=device)
+        def _eval(idx, length):
+            inputs = torch.arange(idx, idx + length, device=DEVICE)
             result = model(inputs)
 
             predicted = [chr(int(x.item())) for x in torch.argmax(result, dim=1)]
@@ -93,6 +100,61 @@ def main():
                 f"Predicted string from {idx} to {idx+length}: {repr(''.join(predicted))}"
             )
 
-        last_idx = len(dataset) - 1
-        evaluate(0, 100)
-        evaluate(last_idx - 100, 100)
+        last_idx = len(DATASET) - 1
+        _eval(0, 100)
+        _eval(last_idx - 100, 100)
+
+
+def optuna_objective(trial: optuna.Trial) -> float:
+    model = MLPLangModel(
+        input_bit_width=INPUT_BIT_WIDTH,
+        hidden_depth=8,
+        hidden_width=256,
+        out_dim=OUT_DIM,
+        expansion_factor=trial.suggest_float("expansion_factor", 1.0, 4.0, step=0.5),
+        dropout=trial.suggest_float("dropout", 0.0, 0.5, step=0.1),
+        use_selu=trial.suggest_categorical("use_selu", [True, False]),
+    ).to(DEVICE)
+    optimizer = torch.optim.AdamW(
+        model.parameters(), lr=trial.suggest_float("lr", 1e-5, 1e-3)
+    )
+
+    return train_model(
+        model,
+        optimizer,
+        num_epochs=2,
+        batch_size=trial.suggest_int("batch_size", 32, 8192),
+        return_loss_over_n=100,
+    )
+
+
+def main():
+    study = optuna.create_study(direction="minimize")
+    study.optimize(optuna_objective, n_trials=100)
+    print(
+        f"Hyperparameter optimization complete. Training with params: {study.best_params}"
+    )
+
+    model = MLPLangModel(
+        input_bit_width=INPUT_BIT_WIDTH,
+        hidden_depth=8,
+        hidden_width=256,
+        out_dim=OUT_DIM,
+        expansion_factor=study.best_params["expansion_factor"],
+        dropout=study.best_params["dropout"],
+        use_selu=study.best_params["use_selu"],
+    ).to(DEVICE)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=study.best_params["lr"])
+
+    avg_loss = train_model(
+        model,
+        optimizer,
+        num_epochs=10,
+        batch_size=study.best_params["batch_size"],
+    )
+    print(f"Training complete with an average loss of {avg_loss} over last 100 batches")
+
+    torch.save(model, "tensor.pt")
+    print("Model saved to tensor.pt. Evaluating model...")
+
+    evaluate_model(model)
