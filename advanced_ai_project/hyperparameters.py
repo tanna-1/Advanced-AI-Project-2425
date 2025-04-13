@@ -3,10 +3,7 @@ from typing import Any
 import torch
 import optuna
 
-from .utils import DEVICE
 from .model import MLPCheckpoint
-
-HYPERPARAMETER_DB = "sqlite:///optuna-study.db"
 
 
 def _optuna_objective_wrap(dataset: Dataset, num_epochs: int, batch_size: int):
@@ -39,13 +36,14 @@ def _optuna_objective_wrap(dataset: Dataset, num_epochs: int, batch_size: int):
     return _optuna_objective
 
 
-def load_hyperparameters() -> dict[str, Any]:
+def load_hyperparameters(db_path: str) -> dict[str, Any]:
     return optuna.load_study(
-        storage=HYPERPARAMETER_DB, study_name="hyperparameters"
+        storage=f"sqlite:///{db_path}", study_name="hyperparameters"
     ).best_params
 
 
 def optimize_hyperparameters(
+    db_path: str,
     dataset: Dataset,
     n_trials: int,
     num_epochs: int,
@@ -53,7 +51,7 @@ def optimize_hyperparameters(
 ):
     study = optuna.create_study(
         direction="minimize",
-        storage=HYPERPARAMETER_DB,
+        storage=f"sqlite:///{db_path}",
         study_name="hyperparameters",
         load_if_exists=True,
     )
