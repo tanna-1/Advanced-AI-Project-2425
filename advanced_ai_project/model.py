@@ -135,7 +135,7 @@ class MLPCheckpoint:
                 inputs = inputs.to(self.model.device)
                 targets = targets.to(self.model.device)
 
-                self.last_seen_index = max(self.last_seen_index, inputs.max().item())
+                self.last_seen_index = inputs.max().item()
 
                 result = self.model(inputs)
 

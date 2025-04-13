@@ -104,12 +104,12 @@ def autocomplete_operation(
 ):
     print("Autocompleting via model...")
     ckpt = MLPCheckpoint.load(checkpoint_path)
-    last_seen_index = ckpt.last_seen_index
+    start_index = ckpt.last_seen_index + 1
 
     print("Meta-training model...")
     ckpt.model.train()
     avg_loss = ckpt.train(
-        PromptDataset(prompt, index_offset=last_seen_index + 1),
+        PromptDataset(prompt, index_offset=start_index),
         num_epochs=num_epochs,
         batch_size=batch_size,
     )
@@ -117,7 +117,7 @@ def autocomplete_operation(
         f"Meta-training complete with an average loss of {avg_loss} over last 100 batches"
     )
 
-    _eval_model(ckpt, last_seen_index, len(prompt) + count)
+    _eval_model(ckpt, start_index, len(prompt) + count)
 
 
 def main():
@@ -233,7 +233,7 @@ def main():
     autocomplete_parser.add_argument(
         "--num-epochs",
         type=int,
-        default=2000,
+        default=500,
         help="Number of epochs for meta-training",
     )
     autocomplete_parser.add_argument(
