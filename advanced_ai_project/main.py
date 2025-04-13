@@ -76,10 +76,15 @@ def train_operation(
     print(f"Model saved to {checkpoint_path}")
 
 
-def evaluate_operation(checkpoint_path: str) -> None:
+def evaluate_operation(checkpoint_path: str, start: int | None, count: int) -> None:
     print("Evaluating model...")
     ckpt = MLPCheckpoint.load(checkpoint_path)
     ckpt.model.eval()
+
+    if start is None:
+        start = ckpt.last_seen_index
+    elif start < 0:
+        start = ckpt.last_seen_index + start
 
     with torch.no_grad():
 
@@ -92,9 +97,7 @@ def evaluate_operation(checkpoint_path: str) -> None:
                 f"Predicted string from {idx} to {idx+length}: {repr(''.join(predicted))}"
             )
 
-        last_idx = ckpt.last_seen_index
-        _eval(0, 100)
-        _eval(last_idx - 100, 100)
+        _eval(start, count)
 
 
 def main():
@@ -177,6 +180,18 @@ def main():
 
     # Subparser for 'evaluate'
     evaluate_parser = subparsers.add_parser("evaluate", help="Evaluate the model")
+    evaluate_parser.add_argument(
+        "--start",
+        type=int,
+        default=None,
+        help="Starting index for evaluation (default: None, uses last seen index)",
+    )
+    evaluate_parser.add_argument(
+        "--count",
+        type=int,
+        default=1000,
+        help="Number of characters to evaluate (default: 1000)",
+    )
 
     args = parser.parse_args()
 
@@ -200,4 +215,4 @@ def main():
             args.length_cutoff,
         )
     elif args.operation == "evaluate":
-        evaluate_operation(args.checkpoint_path)
+        evaluate_operation(args.checkpoint_path, args.start, args.count)
