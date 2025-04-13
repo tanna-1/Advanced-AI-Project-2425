@@ -33,9 +33,6 @@ class MLPLangModel(nn.Module):
     ):
         super().__init__()
 
-        # Hidden depth is reduced based on the expansion factor to avoid incorrect optimization of hyperparameters
-        hidden_depth = int(hidden_depth // (expansion_factor + 1))
-
         self.seq = nn.Sequential(
             BinaryEncode(input_bit_width),
             nn.Linear(input_bit_width, hidden_width),

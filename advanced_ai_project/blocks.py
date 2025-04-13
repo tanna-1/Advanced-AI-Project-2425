@@ -52,39 +52,3 @@ class InvertedBottleneckMLP(nn.Module):
 
     def forward(self, x):
         return x + self.fn(self.ln(x))
-
-
-# Residual MLP Block
-class PlainMLP(nn.Module):
-    def __init__(
-        self,
-        dim: int,
-        dropout: float = 0.0,
-        use_selu: bool = False,
-    ):
-        super().__init__()
-
-        if use_selu:
-            # Same as the original, but with SELU activation,
-            # Alpha Dropout instead of Dropout and no Layer Norm.
-            (activation_fn, dropout_fn, layer_norm) = (
-                nn.SELU,
-                ConditionalAlphaDropout,
-                nn.Identity(),
-            )
-        else:
-            (activation_fn, dropout_fn, layer_norm) = (
-                nn.GELU,
-                ConditionalDropout,
-                nn.LayerNorm(dim),
-            )
-
-        self.fn = nn.Sequential(
-            nn.Linear(dim, dim),
-            activation_fn(),
-            dropout_fn(dropout),
-        )
-        self.ln = layer_norm
-
-    def forward(self, x):
-        return x + self.fn(self.ln(x))
