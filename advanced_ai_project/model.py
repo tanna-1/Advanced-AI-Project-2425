@@ -119,10 +119,9 @@ class MLPCheckpoint:
 
         # Last N losses
         loss_history = collections.deque(maxlen=return_loss_over_n)
-
-        # Shuffle is disabled for easier training continuation
+        
         dataloader = DataLoader(
-            dataset, batch_size=batch_size, pin_memory=True, shuffle=False
+            dataset, batch_size=batch_size, pin_memory=True, shuffle=True
         )
 
         for _ in tqdm(range(num_epochs)):
