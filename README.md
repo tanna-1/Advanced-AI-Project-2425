@@ -9,9 +9,11 @@ The idea is inspired by the paper [Scaling MLPs: A Tale of Inductive Bias](https
 
 ## Usage
 
-1. Optimize hyperparameters: `$env:CUBLAS_WORKSPACE_CONFIG=":4096:8"; advanced_ai_project optimize [dataset_path]`
-2. Train model: `advanced_ai_project train [dataset_path]`
-3. Evaluate model: `advanced_ai_project evaluate`
+```powershell
+$env:CUBLAS_WORKSPACE_CONFIG=":4096:8"; advanced_ai_project optimize ../item.csv --length-cutoff 100000 --num-epochs 2
+advanced_ai_project train ../item.csv --num-epochs 2
+advanced_ai_project evaluate --start='-100'
+```
 
 ## References
 - Alpha Dropout & SELU: [Self-Normalizing Neural Networks](https://arxiv.org/abs/1706.02515)
