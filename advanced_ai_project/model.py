@@ -16,6 +16,9 @@ INPUT_BIT_WIDTH = 64
 HIDDEN_DEPTH = 16
 HIDDEN_WIDTH = 512
 
+# Display parameters
+INNER_PROGRESS_CUTOFF = 1000
+
 
 class MLPLangModel(nn.Module):
     def __init__(
@@ -123,7 +126,12 @@ class MLPCheckpoint:
         )
 
         for _ in tqdm(range(num_epochs)):
-            for inputs, targets in tqdm(dataloader):
+            if len(dataloader) > INNER_PROGRESS_CUTOFF:
+                iterator = tqdm(dataloader)
+            else:
+                iterator = dataloader
+
+            for inputs, targets in iterator:
                 inputs = inputs.to(self.model.device)
                 targets = targets.to(self.model.device)
 

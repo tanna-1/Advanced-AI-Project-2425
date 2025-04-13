@@ -13,6 +13,7 @@ The idea is inspired by the paper [Scaling MLPs: A Tale of Inductive Bias](https
 $env:CUBLAS_WORKSPACE_CONFIG=":4096:8"; advanced_ai_project optimize ../item.csv --length-cutoff 100000 --num-epochs 2
 advanced_ai_project train ../item.csv --num-epochs 2
 advanced_ai_project evaluate --start='-100'
+advanced_ai_project autocomplete "Hi, my name is "
 ```
 
 ## References

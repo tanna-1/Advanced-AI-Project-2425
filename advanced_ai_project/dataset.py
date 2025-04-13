@@ -24,3 +24,15 @@ class CharIndexDataset(Dataset):
     def __del__(self):
         if hasattr(self, "mapped_file"):
             self.__mapped_file.close()
+
+
+class PromptDataset(Dataset):
+    def __init__(self, prompt: str, index_offset: int = 0):
+        self.__index_offset = index_offset
+        self.__prompt = prompt.encode("utf-8")
+
+    def __len__(self) -> int:
+        return len(self.__prompt)
+
+    def __getitem__(self, idx: int):
+        return self.__index_offset + idx, self.__prompt[idx]
