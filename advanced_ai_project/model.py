@@ -43,15 +43,6 @@ class MLPLangModel(nn.Module):
             nn.Linear(hidden_width, out_dim),
         )
 
-        self._initialize_weights()
-
-    def _initialize_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.kaiming_normal_(m.weight)
-                if m.bias is not None:
-                    nn.init.zeros_(m.bias)
-
     @property
     def device(self):
         return next(self.parameters()).device
@@ -116,7 +107,7 @@ class MLPCheckpoint:
 
         # Last N losses
         loss_history = collections.deque(maxlen=return_loss_over_n)
-        
+
         dataloader = DataLoader(
             dataset, batch_size=batch_size, pin_memory=True, shuffle=True
         )
