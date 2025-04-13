@@ -1,6 +1,7 @@
 from pathlib import Path
 import argparse
 import torch
+from torchinfo import summary
 
 from .hyperparameters import (
     load_hyperparameters,
@@ -120,157 +121,56 @@ def autocomplete_operation(
     _eval_model(ckpt, start_index, len(prompt) + count)
 
 
+def model_info_operation(checkpoint_path: str, batch_size: int):
+    print("Displaying model summary...")
+    ckpt = MLPCheckpoint.load(checkpoint_path)
+    summary(
+        ckpt.model,
+        input_data=torch.zeros(
+            (batch_size, 64), dtype=torch.int64, device=ckpt.model.device
+        ),
+    )
+
+
 def main():
-    parser = argparse.ArgumentParser(
-        description="Advanced AI Project",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    parser.add_argument(
-        "--checkpoint-path",
-        default="checkpoint.pt",
-        help="Path to save or load the model checkpoint",
-    )
+    parser = argparse.ArgumentParser(description="Advanced AI Project", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("--checkpoint-path", default="checkpoint.pt", help="Path to save or load the model checkpoint")
+    subparsers = parser.add_subparsers(dest="operation", required=True, help="Operation to perform")
 
-    subparsers = parser.add_subparsers(
-        dest="operation", required=True, help="Operation to perform"
-    )
-
-    # Subparser for 'optimize'
     optimize_parser = subparsers.add_parser("optimize", help="Optimize hyperparameters")
-    optimize_parser.add_argument(
-        "dataset_path",
-        help="Path to the dataset",
-    )
-    optimize_parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=4096,
-        help="Batch size for optimization",
-    )
-    optimize_parser.add_argument(
-        "--num-epochs",
-        type=int,
-        default=2,
-        help="Number of epochs for optimization",
-    )
-    optimize_parser.add_argument(
-        "--opt-trials",
-        type=int,
-        default=100,
-        help="Number of trials for hyperparameter optimization",
-    )
-    optimize_parser.add_argument(
-        "--length-cutoff",
-        type=int,
-        default=None,
-        help="Maximum length of sequences in the dataset",
-    )
-    optimize_parser.add_argument(
-        "--study-path",
-        default="study.db",
-        help="Path to the database for storing optimization studies",
-    )
+    optimize_parser.add_argument("dataset_path", help="Path to the dataset")
+    optimize_parser.add_argument("--opt-trials", type=int, default=100, help="Number of trials for hyperparameter optimization")
+    optimize_parser.add_argument("--study-path", default="study.db", help="Path to the database for storing optimization studies")
+    optimize_parser.add_argument("--batch-size", type=int, default=4096, help="Batch size")
+    optimize_parser.add_argument("--num-epochs", type=int, default=2, help="Number of epochs")
+    optimize_parser.add_argument("--length-cutoff", type=int, default=None, help="Maximum length of sequences in the dataset")
 
-    # Subparser for 'train'
     train_parser = subparsers.add_parser("train", help="Train the model")
-    train_parser.add_argument(
-        "dataset_path",
-        help="Path to the dataset",
-    )
-    train_parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=4096,
-        help="Batch size for training",
-    )
-    train_parser.add_argument(
-        "--num-epochs",
-        type=int,
-        default=2,
-        help="Number of epochs for training",
-    )
-    train_parser.add_argument(
-        "--length-cutoff",
-        type=int,
-        default=None,
-        help="Maximum length of sequences in the dataset",
-    )
-    train_parser.add_argument(
-        "--study-path",
-        default="study.db",
-        help="Path to the database for loading hyperparameters",
-    )
+    train_parser.add_argument("dataset_path", help="Path to the dataset")
+    train_parser.add_argument("--study-path", default="study.db", help="Path to the database for loading hyperparameters")
+    train_parser.add_argument("--batch-size", type=int, default=4096, help="Batch size")
+    train_parser.add_argument("--num-epochs", type=int, default=2, help="Number of epochs")
+    train_parser.add_argument("--length-cutoff", type=int, default=None, help="Maximum length of sequences in the dataset")
 
-    # Subparser for 'evaluate'
     evaluate_parser = subparsers.add_parser("evaluate", help="Evaluate the model")
-    evaluate_parser.add_argument(
-        "--start",
-        type=int,
-        default=None,
-        help="Starting index for evaluation",
-    )
-    evaluate_parser.add_argument(
-        "--count",
-        type=int,
-        default=1000,
-        help="Number of characters to evaluate",
-    )
+    evaluate_parser.add_argument("--start", type=int, default=None, help="Starting index for evaluation")
+    evaluate_parser.add_argument("--count", type=int, default=1000, help="Number of characters to evaluate")
 
-    # Subparser for 'autocomplete'
-    autocomplete_parser = subparsers.add_parser(
-        "autocomplete", help="Autocomplete using the model"
-    )
-    autocomplete_parser.add_argument(
-        "prompt",
-        help="Prompt string to autocomplete",
-    )
-    autocomplete_parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=16,
-        help="Batch size for meta-training",
-    )
-    autocomplete_parser.add_argument(
-        "--num-epochs",
-        type=int,
-        default=500,
-        help="Number of epochs for meta-training",
-    )
-    autocomplete_parser.add_argument(
-        "--count",
-        type=int,
-        default=1000,
-        help="Number of characters to predict after the prompt",
-    )
+    autocomplete_parser = subparsers.add_parser("autocomplete", help="Autocomplete using the model")
+    autocomplete_parser.add_argument("prompt", help="Prompt string to autocomplete")
+    autocomplete_parser.add_argument("--batch-size", type=int, default=16, help="Batch size for meta-training")
+    autocomplete_parser.add_argument("--num-epochs", type=int, default=500, help="Number of epochs for meta-training")
+    autocomplete_parser.add_argument("--count", type=int, default=1000, help="Number of characters to predict after the prompt")
+
+    model_info_parser = subparsers.add_parser("model_info", help="Display model summary")
+    model_info_parser.add_argument("--batch-size", type=int, default=1, help="Batch size for the model summary")
 
     args = parser.parse_args()
-
-    if args.operation == "optimize":
-        optimize_operation(
-            args.dataset_path,
-            args.checkpoint_path,
-            args.study_path,
-            args.batch_size,
-            args.num_epochs,
-            args.opt_trials,
-            args.length_cutoff,
-        )
-    elif args.operation == "train":
-        train_operation(
-            args.dataset_path,
-            args.checkpoint_path,
-            args.study_path,
-            args.batch_size,
-            args.num_epochs,
-            args.length_cutoff,
-        )
-    elif args.operation == "evaluate":
-        evaluate_operation(args.checkpoint_path, args.start, args.count)
-    elif args.operation == "autocomplete":
-        autocomplete_operation(
-            args.checkpoint_path,
-            args.prompt,
-            args.batch_size,
-            args.num_epochs,
-            args.count,
-        )
+    operations = {
+        "optimize": lambda: optimize_operation(args.dataset_path, args.checkpoint_path, args.study_path, args.batch_size, args.num_epochs, args.opt_trials, args.length_cutoff),
+        "train": lambda: train_operation(args.dataset_path, args.checkpoint_path, args.study_path, args.batch_size, args.num_epochs, args.length_cutoff),
+        "evaluate": lambda: evaluate_operation(args.checkpoint_path, args.start, args.count),
+        "autocomplete": lambda: autocomplete_operation(args.checkpoint_path, args.prompt, args.batch_size, args.num_epochs, args.count),
+        "model_info": lambda: model_info_operation(args.checkpoint_path, args.batch_size),
+    }
+    operations[args.operation]()

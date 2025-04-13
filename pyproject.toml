@@ -4,6 +4,7 @@ version = "1.0-dev"
 dependencies = [
     "tqdm~=4.67.1",
     "optuna~=4.2.1",
+    "torchinfo~=1.8.0",
 ]
 
 [project.scripts]
