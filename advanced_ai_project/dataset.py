@@ -19,7 +19,7 @@ class ByteFileDataset(Dataset):
     def __len__(self) -> int:
         return self.__file_length
 
-    def __getitem__(self, idx: int):
+    def __getitem__(self, idx: int) -> tuple[int, int]:
         return idx, self.__mapped_file[idx]
 
     def __del__(self):
@@ -35,17 +35,17 @@ class StringDataset(Dataset):
     def __len__(self) -> int:
         return len(self.__prompt)
 
-    def __getitem__(self, idx: int):
+    def __getitem__(self, idx: int) -> tuple[int, int]:
         return self.__start_index + idx, self.__prompt[idx]
 
 
 class SingleTokenDataset(Dataset):
-    def __init__(self, target: torch.Tensor, start_index: int = 0):
+    def __init__(self, token: int, start_index: int = 0):
         self.__start_index = start_index
-        self.__target = target
+        self.__token = token
 
     def __len__(self) -> int:
         return 1
 
-    def __getitem__(self, idx: int):
-        return self.__start_index, self.__target
+    def __getitem__(self, idx: int) -> tuple[int, int]:
+        return self.__start_index, self.__token

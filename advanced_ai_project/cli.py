@@ -76,7 +76,9 @@ def train_operation(
     print(f"Model saved to {checkpoint_path}")
 
 
-def evaluate_operation(checkpoint_path: str, start: int | None, length: int):
+def evaluate_operation(
+    checkpoint_path: str, start: int | None, length: int, temperature: float, top_k: int
+):
     print("Evaluating model...")
     ckpt = MLPCheckpoint.load(checkpoint_path)
     if start is None:
@@ -84,10 +86,12 @@ def evaluate_operation(checkpoint_path: str, start: int | None, length: int):
     elif start < 0:
         start = ckpt.last_seen_index + start
 
-    print_tokens(evaluate(ckpt, start, length))
+    print_tokens(evaluate(ckpt, start, length, temperature=temperature, top_k=top_k))
 
 
-def autocomplete_operation(checkpoint_path: str, prompt: str, length: int):
+def autocomplete_operation(
+    checkpoint_path: str, prompt: str, length: int, temperature: float, top_k: int
+):
     print("Autocompleting via model...")
     ckpt = MLPCheckpoint.load(checkpoint_path)
     start_index = ckpt.last_seen_index + 1
@@ -101,7 +105,15 @@ def autocomplete_operation(checkpoint_path: str, prompt: str, length: int):
     )
     print(f"Prompt training complete with an average loss of {avg_loss}")
 
-    print_tokens(evaluate(ckpt, start_index + len(prompt), length))
+    print_tokens(
+        evaluate(
+            ckpt,
+            start_index + len(prompt),
+            length,
+            temperature=temperature,
+            top_k=top_k,
+        )
+    )
 
 
 def model_info_operation(checkpoint_path: str, batch_size: int):
@@ -180,6 +192,15 @@ def main():
     evaluate_parser.add_argument(
         "--length", type=int, default=100, help="Number of characters to evaluate"
     )
+    evaluate_parser.add_argument(
+        "--temperature", type=float, default=1.0, help="Temperature for sampling"
+    )
+    evaluate_parser.add_argument(
+        "--top-k",
+        type=int,
+        default=5,
+        help="Number of top tokens to consider for sampling",
+    )
 
     autocomplete_parser = subparsers.add_parser(
         "autocomplete", help="Autocomplete using the model"
@@ -190,6 +211,15 @@ def main():
         type=int,
         default=100,
         help="Number of characters to predict after the prompt",
+    )
+    autocomplete_parser.add_argument(
+        "--temperature", type=float, default=1.0, help="Temperature for sampling"
+    )
+    autocomplete_parser.add_argument(
+        "--top-k",
+        type=int,
+        default=5,
+        help="Number of top tokens to consider for sampling",
     )
 
     model_info_parser = subparsers.add_parser(
@@ -219,12 +249,10 @@ def main():
             args.length_cutoff,
         ),
         "evaluate": lambda: evaluate_operation(
-            args.checkpoint_path, args.start, args.length
+            args.checkpoint_path, args.start, args.length, args.temperature, args.top_k
         ),
         "autocomplete": lambda: autocomplete_operation(
-            args.checkpoint_path,
-            args.prompt,
-            args.length,
+            args.checkpoint_path, args.prompt, args.length, args.temperature, args.top_k
         ),
         "model_info": lambda: model_info_operation(
             args.checkpoint_path, args.batch_size
