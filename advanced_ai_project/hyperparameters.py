@@ -1,6 +1,5 @@
 from torch.utils.data import Dataset
 from typing import Any
-import torch
 import optuna
 
 from .model import MLPCheckpoint
@@ -11,13 +10,6 @@ def _optuna_objective_wrap(dataset: Dataset, num_epochs: int, batch_size: int):
     def _optuna_objective(trial: optuna.Trial) -> float:
         nonlocal dataset
         nonlocal num_epochs
-
-        # Fix the random seed for optimization of hyperparameters
-        torch.manual_seed(0)
-        torch.use_deterministic_algorithms(True)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-
         params = {
             "expansion_factor": trial.suggest_float(
                 "expansion_factor", 1.0, 4.0, step=0.5
