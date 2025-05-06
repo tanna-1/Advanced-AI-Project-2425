@@ -11,6 +11,14 @@ The model will also have the ability to input/output latent tensors, so as to be
 
 ## Usage
 
+### Setup
+
+```
+pip install .
+```
+
+### Running
+
 ```powershell
 advanced_ai_project optimize ../item.csv --length-cutoff 100000 --num-epochs 2
 advanced_ai_project train ../item.csv --num-epochs 2
