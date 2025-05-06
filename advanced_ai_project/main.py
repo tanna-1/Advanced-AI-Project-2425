@@ -179,7 +179,7 @@ def main():
         "--start", type=int, default=None, help="Starting index for evaluation"
     )
     evaluate_parser.add_argument(
-        "--count", type=int, default=1000, help="Number of characters to evaluate"
+        "--count", type=int, default=100, help="Number of characters to evaluate"
     )
 
     autocomplete_parser = subparsers.add_parser(
@@ -189,7 +189,7 @@ def main():
     autocomplete_parser.add_argument(
         "--count",
         type=int,
-        default=1000,
+        default=100,
         help="Number of characters to predict after the prompt",
     )
 
