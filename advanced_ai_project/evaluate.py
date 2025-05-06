@@ -3,7 +3,7 @@ from typing import Any, Generator, Iterable
 import torch
 
 from .utils import sample_top_k
-from .dataset import SingleTokenDataset
+from .dataset.text import SingleTokenDataset
 from .model import SPECIAL_IMAGE_TOKEN, TOKEN_DIM, MLPCheckpoint
 
 META_TRAINING_EPOCHS = 1

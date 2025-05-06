@@ -1,9 +1,9 @@
-import torch
-from torch.utils.data import Dataset
 import mmap
 
+from .base import TokenDataset
 
-class ByteFileDataset(Dataset):
+
+class ByteFileDataset(TokenDataset):
     def __init__(self, file_path: str, length_cutoff: int | None = None):
         with open(file_path, "rb") as f:
             self.__mapped_file = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
@@ -27,7 +27,7 @@ class ByteFileDataset(Dataset):
             self.__mapped_file.close()
 
 
-class StringDataset(Dataset):
+class StringDataset(TokenDataset):
     def __init__(self, prompt: str, start_index: int = 0):
         self.__start_index = start_index
         self.__prompt = prompt.encode("utf-8")
@@ -39,7 +39,7 @@ class StringDataset(Dataset):
         return self.__start_index + idx, self.__prompt[idx]
 
 
-class SingleTokenDataset(Dataset):
+class SingleTokenDataset(TokenDataset):
     def __init__(self, token: int, start_index: int = 0):
         self.__start_index = start_index
         self.__token = token

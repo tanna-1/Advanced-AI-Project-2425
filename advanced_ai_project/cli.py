@@ -8,7 +8,7 @@ from .hyperparameters import (
     optimize_hyperparameters,
 )
 from .model import MLPCheckpoint
-from .dataset import ByteFileDataset, StringDataset
+from .dataset.text import ByteFileDataset, StringDataset
 from .evaluate import META_TRAINING_EPOCHS, evaluate, print_tokens
 
 

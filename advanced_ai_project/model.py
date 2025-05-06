@@ -1,12 +1,12 @@
 import collections
 from dataclasses import dataclass
 from typing import Any
-from torch.utils.data import Dataset
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from .dataset.base import TokenDataset, TokenLatentDataset
 from .utils import DEVICE
 from .blocks import InvertedBottleneckMLP, BinaryEncode
 
@@ -25,10 +25,12 @@ SPECIAL_IMAGE_TOKEN = 256
 
 
 class MultimodalLoss(nn.Module):
-    def __init__(self):
+    def __init__(self, dataset_type: type[TokenDataset | TokenLatentDataset]):
         super().__init__()
-        self.ce_loss = nn.CrossEntropyLoss()
-        self.mse_loss = nn.MSELoss()
+
+        self.__dataset_type = dataset_type
+        self.__ce_loss = nn.CrossEntropyLoss()
+        self.__mse_loss = nn.MSELoss()
 
     def forward(self, outputs, targets):
         batch_size = outputs.shape[0]
@@ -40,27 +42,19 @@ class MultimodalLoss(nn.Module):
         for i in range(batch_size):
             target = targets[i]
 
-            # If the target is a tensor that is not a scalar, it is a latent input
-            if isinstance(target, torch.Tensor) and target.dim() > 1:
-                # Apply cross-entropy over token_logits to predict IMAGE_TOKEN
-                loss += self.ce_loss(
-                    token_logits[i].unsqueeze(0),
-                    torch.tensor([SPECIAL_IMAGE_TOKEN], device=outputs.device),
-                )
-
-                # Apply L2 loss on the next IMAGE_DIM dimensions for the image
-                image_output = outputs[i, TOKEN_DIM:]
-                loss += self.mse_loss(image_output, target)
-            else:
+            if issubclass(self.__dataset_type, TokenDataset):
                 # Apply cross-entropy over token_logits to predict text token
-                loss += self.ce_loss(
-                    token_logits[i].unsqueeze(0),
-                    (
-                        target.unsqueeze(0)
-                        if isinstance(target, torch.Tensor)
-                        else torch.tensor([target], device=outputs.device)
-                    ),
-                )
+                loss = loss + self.__ce_loss(token_logits[i], target)
+
+            elif issubclass(self.__dataset_type, TokenLatentDataset):
+                # Apply cross-entropy over token_logits to predict token
+                loss = loss + self.__ce_loss(token_logits[i], target[0].long())
+
+                if int(target[0].item()) == SPECIAL_IMAGE_TOKEN:
+                    # Apply L2 loss on the next dimensions for the image
+                    image_output = outputs[i, TOKEN_DIM:]
+                    image_target = target[1:]
+                    loss = loss + self.__mse_loss(image_output, image_target)
 
         return loss / batch_size
 
@@ -143,13 +137,13 @@ class MLPCheckpoint:
     # Returns the average loss over the last N batches
     def train(
         self,
-        dataset: Dataset,
+        dataset: TokenDataset | TokenLatentDataset,
         num_epochs: int,
         batch_size: int,
         return_loss_over_n: int = 100,
         show_progress: bool = True,
     ):
-        loss_fn = MultimodalLoss()
+        loss_fn = MultimodalLoss(type(dataset))
 
         # Last N losses
         loss_history = collections.deque(maxlen=return_loss_over_n)
