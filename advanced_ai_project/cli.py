@@ -9,7 +9,7 @@ from .hyperparameters import (
 )
 from .model import MLPCheckpoint
 from .dataset import ByteFileDataset, StringDataset
-from .evaluate import META_TRAINING_EPOCHS, evaluate
+from .evaluate import META_TRAINING_EPOCHS, evaluate, print_tokens
 
 
 def optimize_operation(
@@ -68,9 +68,7 @@ def train_operation(
             num_epochs=num_epochs,
             batch_size=batch_size,
         )
-        print(
-            f"Training complete with an average loss of {avg_loss}"
-        )
+        print(f"Training complete with an average loss of {avg_loss}")
     except KeyboardInterrupt:
         print("Training interrupted.")
 
@@ -78,17 +76,18 @@ def train_operation(
     print(f"Model saved to {checkpoint_path}")
 
 
-def evaluate_operation(checkpoint_path: str, start: int | None, count: int):
+def evaluate_operation(checkpoint_path: str, start: int | None, length: int):
     print("Evaluating model...")
     ckpt = MLPCheckpoint.load(checkpoint_path)
     if start is None:
         start = ckpt.last_seen_index
     elif start < 0:
         start = ckpt.last_seen_index + start
-    print(evaluate(ckpt, start, count))
+
+    print_tokens(evaluate(ckpt, start, length))
 
 
-def autocomplete_operation(checkpoint_path: str, prompt: str, count: int):
+def autocomplete_operation(checkpoint_path: str, prompt: str, length: int):
     print("Autocompleting via model...")
     ckpt = MLPCheckpoint.load(checkpoint_path)
     start_index = ckpt.last_seen_index + 1
@@ -96,13 +95,13 @@ def autocomplete_operation(checkpoint_path: str, prompt: str, count: int):
     print("Training on the prompt...")
     ckpt.model.train()
     avg_loss = ckpt.train(
-        StringDataset(prompt, index_offset=start_index),
+        StringDataset(prompt, start_index=start_index),
         num_epochs=META_TRAINING_EPOCHS,
         batch_size=1,
     )
     print(f"Prompt training complete with an average loss of {avg_loss}")
 
-    print(evaluate(ckpt, start_index + len(prompt), count))
+    print_tokens(evaluate(ckpt, start_index + len(prompt), length))
 
 
 def model_info_operation(checkpoint_path: str, batch_size: int):
@@ -179,7 +178,7 @@ def main():
         "--start", type=int, default=None, help="Starting index for evaluation"
     )
     evaluate_parser.add_argument(
-        "--count", type=int, default=100, help="Number of characters to evaluate"
+        "--length", type=int, default=100, help="Number of characters to evaluate"
     )
 
     autocomplete_parser = subparsers.add_parser(
@@ -187,7 +186,7 @@ def main():
     )
     autocomplete_parser.add_argument("prompt", help="Prompt string to autocomplete")
     autocomplete_parser.add_argument(
-        "--count",
+        "--length",
         type=int,
         default=100,
         help="Number of characters to predict after the prompt",
@@ -220,12 +219,12 @@ def main():
             args.length_cutoff,
         ),
         "evaluate": lambda: evaluate_operation(
-            args.checkpoint_path, args.start, args.count
+            args.checkpoint_path, args.start, args.length
         ),
         "autocomplete": lambda: autocomplete_operation(
             args.checkpoint_path,
             args.prompt,
-            args.count,
+            args.length,
         ),
         "model_info": lambda: model_info_operation(
             args.checkpoint_path, args.batch_size

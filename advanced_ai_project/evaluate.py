@@ -1,7 +1,6 @@
 from dataclasses import dataclass
-from typing import Sequence
+from typing import Any, Generator, Iterable
 import torch
-from tqdm import tqdm
 
 from .dataset import SingleTokenDataset
 from .model import SPECIAL_IMAGE_TOKEN, TOKEN_DIM, MLPCheckpoint
@@ -19,13 +18,23 @@ class ImageToken:
     image: torch.Tensor
 
 
+def print_tokens(
+    tokens: Iterable[TextToken | ImageToken],
+):
+    for token in tokens:
+        if isinstance(token, ImageToken):
+            print(f"<image/>", end="", flush=True)
+        elif isinstance(token, TextToken):
+            print(token.char.encode("unicode_escape").decode(), end="", flush=True)
+        else:
+            print(f"<unknown type={type(token)}/>", end="", flush=True)
+
+
 def evaluate(
     ckpt: MLPCheckpoint, idx: int, length: int
-) -> Sequence[TextToken | ImageToken]:
-    predicted = []
-
+) -> Generator[TextToken | ImageToken, Any, None]:
     ckpt.model.train()
-    for i in tqdm(range(idx, idx + length)):
+    for i in range(idx, idx + length):
         # Input is not batched, so get the first dimension of the output
         output = ckpt.model(torch.tensor([i], device=ckpt.model.device))[0]
 
@@ -42,8 +51,7 @@ def evaluate(
         if sampled_token == SPECIAL_IMAGE_TOKEN:
             # Extract image data from the remaining dimensions
             image_data = output[TOKEN_DIM:]
-            predicted.append(ImageToken(image_data))
+            yield ImageToken(image_data)
         else:
-            predicted.append(TextToken(chr(int(sampled_token))))
-
-    return predicted
+            ascii = chr(int(sampled_token))
+            yield TextToken(ascii)

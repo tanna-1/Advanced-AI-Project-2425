@@ -28,24 +28,24 @@ class ByteFileDataset(Dataset):
 
 
 class StringDataset(Dataset):
-    def __init__(self, prompt: str, index_offset: int = 0):
-        self.__index_offset = index_offset
+    def __init__(self, prompt: str, start_index: int = 0):
+        self.__start_index = start_index
         self.__prompt = prompt.encode("utf-8")
 
     def __len__(self) -> int:
         return len(self.__prompt)
 
     def __getitem__(self, idx: int):
-        return self.__index_offset + idx, self.__prompt[idx]
+        return self.__start_index + idx, self.__prompt[idx]
 
 
 class SingleTokenDataset(Dataset):
-    def __init__(self, target: torch.Tensor, index_offset: int = 0):
-        self.__index_offset = index_offset
+    def __init__(self, target: torch.Tensor, start_index: int = 0):
+        self.__start_index = start_index
         self.__target = target
 
     def __len__(self) -> int:
         return 1
 
     def __getitem__(self, idx: int):
-        return self.__index_offset, self.__target
+        return self.__start_index, self.__target
