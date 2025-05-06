@@ -8,7 +8,7 @@ from .hyperparameters import (
     optimize_hyperparameters,
 )
 from .model import MLPCheckpoint
-from .dataset import CharIndexDataset, StringDataset
+from .dataset import ByteFileDataset, StringDataset
 from .evaluate import META_TRAINING_EPOCHS, evaluate
 
 
@@ -29,7 +29,7 @@ def optimize_operation(
     try:
         optimize_hyperparameters(
             study_path,
-            CharIndexDataset(dataset_path, length_cutoff=length_cutoff),
+            ByteFileDataset(dataset_path, length_cutoff=length_cutoff),
             n_trials=opt_trials,
             num_epochs=num_epochs,
             batch_size=batch_size,
@@ -64,7 +64,7 @@ def train_operation(
 
     try:
         avg_loss = ckpt.train(
-            CharIndexDataset(dataset_path, length_cutoff=length_cutoff),
+            ByteFileDataset(dataset_path, length_cutoff=length_cutoff),
             num_epochs=num_epochs,
             batch_size=batch_size,
         )

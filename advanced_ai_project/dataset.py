@@ -3,7 +3,7 @@ from torch.utils.data import Dataset
 import mmap
 
 
-class CharIndexDataset(Dataset):
+class ByteFileDataset(Dataset):
     def __init__(self, file_path: str, length_cutoff: int | None = None):
         with open(file_path, "rb") as f:
             self.__mapped_file = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
