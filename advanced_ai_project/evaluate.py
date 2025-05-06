@@ -1,8 +1,12 @@
 from dataclasses import dataclass
 from typing import Sequence
 import torch
+from tqdm import tqdm
 
-from .model import MLPModel, TOKEN_DIM, SPECIAL_IMAGE_TOKEN
+from .dataset import SingleTokenDataset
+from .model import SPECIAL_IMAGE_TOKEN, TOKEN_DIM, MLPCheckpoint
+
+META_TRAINING_EPOCHS = 1
 
 
 @dataclass
@@ -16,23 +20,28 @@ class ImageToken:
 
 
 def evaluate(
-    model: MLPModel, idx: int, length: int
+    ckpt: MLPCheckpoint, idx: int, length: int
 ) -> Sequence[TextToken | ImageToken]:
-    with torch.no_grad():
-        model.eval()
-        inputs = torch.arange(idx, idx + length, device=model.device)
-        result = model(inputs)
+    predicted = []
 
-        predicted = []
-        for i in range(result.size(0)):
-            token_logits = result[i, :TOKEN_DIM]
-            token_id = torch.argmax(token_logits).item()
+    ckpt.model.train()
+    for i in tqdm(range(idx, idx + length)):
+        result = ckpt.model(torch.tensor([i], device=ckpt.model.device))
+        token_logits = result[0][:TOKEN_DIM]
+        sampled_token = torch.argmax(token_logits)
 
-            if token_id == SPECIAL_IMAGE_TOKEN:
-                # Extract image data from the remaining dimensions
-                image_data = result[i, TOKEN_DIM:]
-                predicted.append(ImageToken(image_data))
-            else:
-                predicted.append(TextToken(chr(int(token_id))))
+        ckpt.train(
+            SingleTokenDataset(sampled_token, i),
+            num_epochs=META_TRAINING_EPOCHS,
+            batch_size=1,
+            show_progress=False,
+        )
 
-        return predicted
+        if sampled_token == SPECIAL_IMAGE_TOKEN:
+            # Extract image data from the remaining dimensions
+            image_data = result[i, TOKEN_DIM:]
+            predicted.append(ImageToken(image_data))
+        else:
+            predicted.append(TextToken(chr(int(sampled_token))))
+
+    return predicted

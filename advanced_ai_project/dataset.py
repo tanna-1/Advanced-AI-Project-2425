@@ -1,3 +1,4 @@
+import torch
 from torch.utils.data import Dataset
 import mmap
 
@@ -26,7 +27,7 @@ class CharIndexDataset(Dataset):
             self.__mapped_file.close()
 
 
-class PromptDataset(Dataset):
+class StringDataset(Dataset):
     def __init__(self, prompt: str, index_offset: int = 0):
         self.__index_offset = index_offset
         self.__prompt = prompt.encode("utf-8")
@@ -36,3 +37,15 @@ class PromptDataset(Dataset):
 
     def __getitem__(self, idx: int):
         return self.__index_offset + idx, self.__prompt[idx]
+
+
+class SingleTokenDataset(Dataset):
+    def __init__(self, target: torch.Tensor, index_offset: int = 0):
+        self.__index_offset = index_offset
+        self.__target = target
+
+    def __len__(self) -> int:
+        return 1
+
+    def __getitem__(self, idx: int):
+        return self.__index_offset, self.__target

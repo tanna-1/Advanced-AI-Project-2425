@@ -23,9 +23,6 @@ OUT_DIM = TOKEN_DIM + IMAGE_DIM
 # Special tokens
 SPECIAL_IMAGE_TOKEN = 256
 
-# Display parameters
-INNER_PROGRESS_CUTOFF = 1000
-
 
 class MultimodalLoss(nn.Module):
     def __init__(self):
@@ -150,23 +147,18 @@ class MLPCheckpoint:
         num_epochs: int,
         batch_size: int,
         return_loss_over_n: int = 100,
+        show_progress: bool = True,
     ):
         loss_fn = MultimodalLoss()
 
         # Last N losses
         loss_history = collections.deque(maxlen=return_loss_over_n)
 
-        dataloader = DataLoader(
-            dataset, batch_size=batch_size, pin_memory=True, shuffle=True
-        )
+        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-        for _ in tqdm(range(num_epochs)):
-            if len(dataloader) > INNER_PROGRESS_CUTOFF:
-                iterator = tqdm(dataloader)
-            else:
-                iterator = dataloader
-
-            for inputs, targets in iterator:
+        progress = lambda x: tqdm(x) if show_progress else x
+        for _ in progress(range(num_epochs)):
+            for inputs, targets in progress(dataloader):
                 inputs = inputs.to(self.model.device)
                 targets = targets.to(self.model.device)
 
