@@ -8,4 +8,4 @@ dependencies = [
 ]
 
 [project.scripts]
-"advanced_ai_project" = "advanced_ai_project.main:main"
+"advanced_ai_project" = "advanced_ai_project.cli:main"
