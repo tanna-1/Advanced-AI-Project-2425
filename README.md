@@ -7,6 +7,8 @@ The idea is inspired by the paper [Scaling MLPs: A Tale of Inductive Bias](https
 
 [Optuna](https://optuna.org/) will be used to optimize the model architecture and the hyper-parameters.
 
+The model will also have the ability to input/output latent tensors, so as to be multimodal by repurposing the latent output as image output via a CNN-based autoencoder.
+
 ## Usage
 
 ```powershell

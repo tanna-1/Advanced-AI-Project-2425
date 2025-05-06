@@ -10,17 +10,65 @@ from tqdm import tqdm
 from .utils import DEVICE
 from .blocks import InvertedBottleneckMLP, BinaryEncode
 
-# Hardcoded model parameters
-OUT_DIM = 256
+# Model dimensions
 INPUT_BIT_WIDTH = 64
 HIDDEN_DEPTH = 16
 HIDDEN_WIDTH = 512
+
+# Output dimensions
+IMAGE_DIM = 256
+TOKEN_DIM = 257  # 256+1 for multimodal image output token! Last token is reserved for image output.
+OUT_DIM = TOKEN_DIM + IMAGE_DIM
+
+# Special tokens
+SPECIAL_IMAGE_TOKEN = 256
 
 # Display parameters
 INNER_PROGRESS_CUTOFF = 1000
 
 
-class MLPLangModel(nn.Module):
+class MultimodalLoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.ce_loss = nn.CrossEntropyLoss()
+        self.mse_loss = nn.MSELoss()
+
+    def forward(self, outputs, targets):
+        batch_size = outputs.shape[0]
+        loss = 0.0
+
+        # First TOKEN_DIM dimensions are token logits
+        token_logits = outputs[:, :TOKEN_DIM]
+
+        for i in range(batch_size):
+            target = targets[i]
+
+            # If the target is a tensor that is not a scalar, it is a latent input
+            if isinstance(target, torch.Tensor) and target.dim() > 1:
+                # Apply cross-entropy over token_logits to predict IMAGE_TOKEN
+                loss += self.ce_loss(
+                    token_logits[i].unsqueeze(0),
+                    torch.tensor([SPECIAL_IMAGE_TOKEN], device=outputs.device),
+                )
+
+                # Apply L2 loss on the next IMAGE_DIM dimensions for the image
+                image_output = outputs[i, TOKEN_DIM:]
+                loss += self.mse_loss(image_output, target)
+            else:
+                # Apply cross-entropy over token_logits to predict text token
+                loss += self.ce_loss(
+                    token_logits[i].unsqueeze(0),
+                    (
+                        target.unsqueeze(0)
+                        if isinstance(target, torch.Tensor)
+                        else torch.tensor([target], device=outputs.device)
+                    ),
+                )
+
+        return loss / batch_size
+
+
+class MLPModel(nn.Module):
     def __init__(
         self,
         input_bit_width: int = INPUT_BIT_WIDTH,
@@ -53,7 +101,7 @@ class MLPLangModel(nn.Module):
 
 @dataclass
 class MLPCheckpoint:
-    model: MLPLangModel
+    model: MLPModel
     optimizer: torch.optim.Optimizer
     hyperparameters: dict[str, Any]
     last_seen_index: int
@@ -81,7 +129,7 @@ class MLPCheckpoint:
 
     @staticmethod
     def new_from_hyperparams(hyperparameters: dict[str, Any]):
-        model = MLPLangModel(
+        model = MLPModel(
             expansion_factor=hyperparameters["expansion_factor"],
             dropout=hyperparameters["dropout"],
             use_selu=hyperparameters["use_selu"],
@@ -103,7 +151,7 @@ class MLPCheckpoint:
         batch_size: int,
         return_loss_over_n: int = 100,
     ):
-        loss_fn = nn.CrossEntropyLoss()
+        loss_fn = MultimodalLoss()
 
         # Last N losses
         loss_history = collections.deque(maxlen=return_loss_over_n)

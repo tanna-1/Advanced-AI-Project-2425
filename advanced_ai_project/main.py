@@ -9,6 +9,7 @@ from .hyperparameters import (
 )
 from .model import MLPCheckpoint
 from .dataset import CharIndexDataset, PromptDataset
+from .evaluate import evaluate
 
 
 def optimize_operation(
@@ -77,19 +78,6 @@ def train_operation(
     print(f"Model saved to {checkpoint_path}")
 
 
-# Internal function to evaluate the model
-def _eval_model(ckpt, idx, length):
-    with torch.no_grad():
-        ckpt.model.eval()
-        inputs = torch.arange(idx, idx + length, device=ckpt.model.device)
-        result = ckpt.model(inputs)
-
-        predicted = [chr(int(x.item())) for x in torch.argmax(result, dim=1)]
-        print(
-            f"Predicted string from {idx} to {idx+length}: {repr(''.join(predicted))}"
-        )
-
-
 def evaluate_operation(checkpoint_path: str, start: int | None, count: int):
     print("Evaluating model...")
     ckpt = MLPCheckpoint.load(checkpoint_path)
@@ -97,7 +85,7 @@ def evaluate_operation(checkpoint_path: str, start: int | None, count: int):
         start = ckpt.last_seen_index
     elif start < 0:
         start = ckpt.last_seen_index + start
-    _eval_model(ckpt, start, count)
+    print(evaluate(ckpt.model, start, count))
 
 
 def autocomplete_operation(
@@ -118,7 +106,7 @@ def autocomplete_operation(
         f"Meta-training complete with an average loss of {avg_loss} over last 100 batches"
     )
 
-    _eval_model(ckpt, start_index, len(prompt) + count)
+    print(evaluate(ckpt.model, start_index, len(prompt) + count))
 
 
 def model_info_operation(checkpoint_path: str, batch_size: int):
