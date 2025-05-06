@@ -25,7 +25,9 @@ def print_tokens(
         if isinstance(token, ImageToken):
             print(f"<image/>", end="", flush=True)
         elif isinstance(token, TextToken):
-            print(token.char.encode("unicode_escape").decode(), end="", flush=True)
+            c = token.char
+            c = c if c.isprintable() or c in "\r\n" else f"\\x{ord(c):02x}"
+            print(c, end="", flush=True)
         else:
             print(f"<unknown type={type(token)}/>", end="", flush=True)
 

@@ -32,7 +32,7 @@ class MultimodalLoss(nn.Module):
 
     def forward(self, outputs, targets):
         batch_size = outputs.shape[0]
-        loss = 0.0
+        loss = torch.zeros(1, device=outputs.device)
 
         # First TOKEN_DIM dimensions are token logits
         token_logits = outputs[:, :TOKEN_DIM]
@@ -154,7 +154,8 @@ class MLPCheckpoint:
         # Last N losses
         loss_history = collections.deque(maxlen=return_loss_over_n)
 
-        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        # shuffle=True causes issues with the lazy dataset
+        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
         progress = lambda x: tqdm(x) if show_progress else x
         for _ in progress(range(num_epochs)):
