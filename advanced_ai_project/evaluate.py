@@ -26,8 +26,10 @@ def evaluate(
 
     ckpt.model.train()
     for i in tqdm(range(idx, idx + length)):
-        result = ckpt.model(torch.tensor([i], device=ckpt.model.device))
-        token_logits = result[0][:TOKEN_DIM]
+        # Input is not batched, so get the first dimension of the output
+        output = ckpt.model(torch.tensor([i], device=ckpt.model.device))[0]
+
+        token_logits = output[:TOKEN_DIM]
         sampled_token = torch.argmax(token_logits)
 
         ckpt.train(
@@ -39,7 +41,7 @@ def evaluate(
 
         if sampled_token == SPECIAL_IMAGE_TOKEN:
             # Extract image data from the remaining dimensions
-            image_data = result[i, TOKEN_DIM:]
+            image_data = output[TOKEN_DIM:]
             predicted.append(ImageToken(image_data))
         else:
             predicted.append(TextToken(chr(int(sampled_token))))
