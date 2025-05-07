@@ -13,15 +13,21 @@ The model will also have the ability to input/output latent tensors, so as to be
 
 ### Setup
 
-```
+```bash
+cd llm
 pip install .
+```
+
+### Training
+
+```bash
+advanced_ai_project optimize path/to/dataset.txt --num-epochs 2
+advanced_ai_project train path/to/dataset.txt --num-epochs 2
 ```
 
 ### Running
 
-```powershell
-advanced_ai_project optimize ../item.csv --length-cutoff 100000 --num-epochs 2
-advanced_ai_project train ../item.csv --num-epochs 2
+```bash
 advanced_ai_project evaluate --start='-100'
 advanced_ai_project autocomplete "Hi, my name is "
 ```
