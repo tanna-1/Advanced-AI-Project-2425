@@ -176,6 +176,7 @@ cython_debug/
 # Checkpoint files
 *.pt
 *.db
+*.db-journal
 
 # VS Code
 .vscode/
