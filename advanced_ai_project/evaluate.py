@@ -2,7 +2,7 @@ from typing import Any, Generator, Iterable
 import torch
 
 from .utils import sample_top_k
-from .dataset.text import SingleTokenDataset
+from .dataset import SingleTokenDataset
 from .model import MLPCheckpoint
 
 META_TRAINING_EPOCHS = 1
