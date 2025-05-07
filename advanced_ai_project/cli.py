@@ -167,7 +167,7 @@ def main():
         "--length-cutoff",
         type=int,
         default=None,
-        help="Maximum length of sequences in the dataset",
+        help="Maximum length of the dataset",
     )
 
     train_parser = subparsers.add_parser("train", help="Train the model")
@@ -185,7 +185,7 @@ def main():
         "--length-cutoff",
         type=int,
         default=None,
-        help="Maximum length of sequences in the dataset",
+        help="Maximum length of the dataset",
     )
 
     evaluate_parser = subparsers.add_parser("evaluate", help="Evaluate the model")
