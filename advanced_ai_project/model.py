@@ -11,30 +11,26 @@ from .utils import DEVICE
 from .blocks import InvertedBottleneckMLP, BinaryEncode
 
 # Model dimensions
-INPUT_BIT_WIDTH = 64
-HIDDEN_DEPTH = 16
-HIDDEN_WIDTH = 512
-
-# Output dimensions
+INPUT_DIM = 64
 OUT_DIM = 256
 
 
 class MLPModel(nn.Module):
     def __init__(
         self,
-        input_bit_width: int = INPUT_BIT_WIDTH,
-        hidden_depth: int = HIDDEN_DEPTH,
-        hidden_width: int = HIDDEN_WIDTH,
+        hidden_depth: int,
+        hidden_width: int,
+        expansion_factor: float,
+        dropout: float,
+        use_selu: bool,
+        input_dim: int = INPUT_DIM,
         out_dim: int = OUT_DIM,
-        expansion_factor: float = 4,
-        dropout: float = 0.0,
-        use_selu: bool = False,
     ):
         super().__init__()
 
         self.seq = nn.Sequential(
-            BinaryEncode(input_bit_width),
-            nn.Linear(input_bit_width, hidden_width),
+            BinaryEncode(input_dim),
+            nn.Linear(input_dim, hidden_width),
             *[
                 InvertedBottleneckMLP(hidden_width, expansion_factor, dropout, use_selu)
                 for _ in range(hidden_depth)
@@ -81,6 +77,8 @@ class MLPCheckpoint:
     @staticmethod
     def new_from_hyperparams(hyperparameters: dict[str, Any]):
         model = MLPModel(
+            hidden_depth=hyperparameters["hidden_depth"],
+            hidden_width=hyperparameters["hidden_width"],
             expansion_factor=hyperparameters["expansion_factor"],
             dropout=hyperparameters["dropout"],
             use_selu=hyperparameters["use_selu"],

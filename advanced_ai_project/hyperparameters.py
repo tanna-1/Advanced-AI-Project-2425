@@ -17,6 +17,8 @@ def _optuna_objective_wrap(dataset: Dataset, num_epochs: int, batch_size: int):
             "dropout": trial.suggest_float("dropout", 0.0, 0.5, step=0.1),
             "use_selu": trial.suggest_categorical("use_selu", [True, False]),
             "lr": trial.suggest_float("lr", 1e-5, 1e-3),
+            "hidden_width": trial.suggest_int("hidden_width", 128, 512, step=32),
+            "hidden_depth": trial.suggest_int("hidden_depth", 8, 24),
         }
         return MLPCheckpoint.new_from_hyperparams(params).train(
             dataset=dataset,
