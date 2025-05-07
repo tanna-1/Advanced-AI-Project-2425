@@ -11,15 +11,17 @@ def _optuna_objective_wrap(dataset: Dataset, num_epochs: int, batch_size: int):
     def _optuna_objective(trial: optuna.Trial) -> float:
         nonlocal dataset
         nonlocal num_epochs
+
+        # Expansion factors lower than 1.0 were not studied in the paper. However, we'll allow the optimizer to test them.
         params = {
             "expansion_factor": trial.suggest_float(
-                "expansion_factor", 1.0, 4.0, step=0.5
+                "expansion_factor", 0.5, 4.0, step=0.5
             ),
             "dropout": trial.suggest_float("dropout", 0.0, 0.5, step=0.1),
             "use_selu": trial.suggest_categorical("use_selu", [True, False]),
             "lr": trial.suggest_float("lr", 1e-5, 1e-3),
-            "hidden_width": trial.suggest_int("hidden_width", 128, 512, step=32),
-            "hidden_depth": trial.suggest_int("hidden_depth", 8, 24, step=2),
+            "hidden_width": trial.suggest_int("hidden_width", 128, 1024, step=32),
+            "hidden_depth": trial.suggest_int("hidden_depth", 8, 32, step=2),
         }
         return train(
             MLPCheckpoint.new_from_hyperparams(params),
