@@ -7,7 +7,9 @@ The idea is inspired by the paper [Scaling MLPs: A Tale of Inductive Bias](https
 
 [Optuna](https://optuna.org/) will be used to optimize the model architecture and the hyper-parameters.
 
-The model will also have the ability to input/output latent tensors, so as to be multimodal by repurposing the latent output as image output via a CNN-based autoencoder.
+The architecture of the model is based on [AUNNs](https://gwern.net/aunn). The model is designed to predict anything from text tokens to weights of another model.
+
+This repository includes code to predict text tokens and the weights of a CNN using our MLP model.
 
 ## Usage
 
@@ -35,3 +37,4 @@ advanced_ai_project autocomplete "Hi, my name is "
 ## References
 - Alpha Dropout & SELU: [Self-Normalizing Neural Networks](https://arxiv.org/abs/1706.02515)
 - Inverted Bottleneck Block: [Scaling MLPs: A Tale of Inductive Bias](https://arxiv.org/abs/2306.13575)
+- AUNNs: [Absolute Unit NNs: Regression-Based MLPs for Everything](https://gwern.net/aunn)
