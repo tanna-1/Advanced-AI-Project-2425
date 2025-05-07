@@ -3,8 +3,9 @@ name = "advanced_ai_project"
 version = "1.0-dev"
 dependencies = [
     "torch~=2.7.0",
+    "torchvision~=0.22.0",
     "tqdm~=4.67.1",
-    "optuna~=4.2.1",
+    "optuna~=4.3.0",
     "torchinfo~=1.8.0",
 ]
 
