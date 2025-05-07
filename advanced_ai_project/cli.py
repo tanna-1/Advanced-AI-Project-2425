@@ -19,7 +19,7 @@ def optimize_operation(
     study_path: str,
     batch_size: int,
     num_epochs: int,
-    opt_trials: int,
+    trials: int,
     length_cutoff: int | None,
 ):
     if Path(checkpoint_path).exists():
@@ -31,7 +31,7 @@ def optimize_operation(
         optimize_hyperparameters(
             study_path,
             ByteFileDataset(dataset_path, length_cutoff=length_cutoff),
-            n_trials=opt_trials,
+            n_trials=trials,
             num_epochs=num_epochs,
             batch_size=batch_size,
         )
@@ -147,7 +147,7 @@ def main():
     optimize_parser = subparsers.add_parser("optimize", help="Optimize hyperparameters")
     optimize_parser.add_argument("dataset_path", help="Path to the dataset")
     optimize_parser.add_argument(
-        "--opt-trials",
+        "--trials",
         type=int,
         default=100,
         help="Number of trials for hyperparameter optimization",
@@ -240,7 +240,7 @@ def main():
             args.study_path,
             args.batch_size,
             args.num_epochs,
-            args.opt_trials,
+            args.trials,
             args.length_cutoff,
         ),
         "train": lambda: train_operation(
