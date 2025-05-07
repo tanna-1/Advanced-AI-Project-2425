@@ -1,12 +1,8 @@
-import collections
 from dataclasses import dataclass
 from typing import Any
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
-from tqdm import tqdm
 
-from torch.utils.data import Dataset
 from .utils import DEVICE
 from .blocks import InvertedBottleneckMLP, BinaryEncode
 
@@ -91,39 +87,3 @@ class MLPCheckpoint:
             hyperparameters=hyperparameters,
             last_seen_index=0,
         )
-
-    # Returns the average loss over the last N batches
-    def train(
-        self,
-        dataset: Dataset,
-        num_epochs: int,
-        batch_size: int,
-        return_loss_over_n: int = 100,
-        show_progress: bool = True,
-    ):
-        loss_fn = nn.CrossEntropyLoss()
-
-        # Last N losses
-        loss_history = collections.deque(maxlen=return_loss_over_n)
-
-        # shuffle=True causes issues with lazy datasets
-        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
-
-        progress = lambda x: tqdm(x) if show_progress else x
-        for _ in progress(range(num_epochs)):
-            for inputs, targets in progress(dataloader):
-                inputs = inputs.to(self.model.device)
-                targets = targets.to(self.model.device)
-
-                self.last_seen_index = inputs.max().item()
-
-                result = self.model(inputs)
-
-                loss = loss_fn(result, targets)
-                loss_history.append(loss.item())
-
-                self.optimizer.zero_grad()
-                loss.backward()
-                self.optimizer.step()
-
-        return sum(loss_history) / len(loss_history)

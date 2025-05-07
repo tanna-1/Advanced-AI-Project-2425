@@ -1,9 +1,11 @@
 from typing import Any, Generator, Iterable
 import torch
 
-from .utils import sample_top_k
+from ..model import MLPCheckpoint
+from ..utils import sample_top_k
+from .train import train
 from .dataset import SingleTokenDataset
-from .model import MLPCheckpoint
+
 
 META_TRAINING_EPOCHS = 1
 
@@ -34,7 +36,8 @@ def evaluate(
         sample = sample_top_k(logits=output, k=top_k, temperature=temperature)
         sample = int(sample.item())
 
-        ckpt.train(
+        train(
+            ckpt,
             SingleTokenDataset(sample, i),
             num_epochs=META_TRAINING_EPOCHS,
             batch_size=1,

@@ -2,6 +2,7 @@ from torch.utils.data import Dataset
 from typing import Any
 import optuna
 
+from .text_prediction.train import train
 from .model import MLPCheckpoint
 
 
@@ -20,7 +21,8 @@ def _optuna_objective_wrap(dataset: Dataset, num_epochs: int, batch_size: int):
             "hidden_width": trial.suggest_int("hidden_width", 128, 512, step=32),
             "hidden_depth": trial.suggest_int("hidden_depth", 8, 24),
         }
-        return MLPCheckpoint.new_from_hyperparams(params).train(
+        return train(
+            MLPCheckpoint.new_from_hyperparams(params),
             dataset=dataset,
             num_epochs=num_epochs,
             batch_size=batch_size,

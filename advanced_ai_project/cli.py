@@ -3,13 +3,14 @@ import argparse
 import torch
 from torchinfo import summary
 
+from .text_prediction.train import train
 from .hyperparameters import (
     load_hyperparameters,
     optimize_hyperparameters,
 )
 from .model import MLPCheckpoint
-from .dataset import ByteFileDataset, StringDataset
-from .evaluate import META_TRAINING_EPOCHS, evaluate, print_tokens
+from .text_prediction.dataset import ByteFileDataset, StringDataset
+from .text_prediction.evaluate import META_TRAINING_EPOCHS, evaluate, print_tokens
 
 
 def optimize_operation(
@@ -63,7 +64,8 @@ def train_operation(
     ckpt.model.train()
 
     try:
-        avg_loss = ckpt.train(
+        avg_loss = train(
+            ckpt,
             ByteFileDataset(dataset_path, length_cutoff=length_cutoff),
             num_epochs=num_epochs,
             batch_size=batch_size,
@@ -98,7 +100,8 @@ def autocomplete_operation(
 
     print("Training on the prompt...")
     ckpt.model.train()
-    avg_loss = ckpt.train(
+    avg_loss = train(
+        ckpt,
         StringDataset(prompt, start_index=start_index),
         num_epochs=META_TRAINING_EPOCHS,
         batch_size=1,
