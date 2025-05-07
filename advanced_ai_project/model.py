@@ -6,7 +6,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from .dataset.base import TokenDataset, TokenLatentDataset
+from torch.utils.data import Dataset
 from .utils import DEVICE
 from .blocks import InvertedBottleneckMLP, BinaryEncode
 
@@ -16,47 +16,7 @@ HIDDEN_DEPTH = 16
 HIDDEN_WIDTH = 512
 
 # Output dimensions
-IMAGE_DIM = 256
-TOKEN_DIM = 257  # 256+1 for multimodal image output token! Last token is reserved for image output.
-OUT_DIM = TOKEN_DIM + IMAGE_DIM
-
-# Special tokens
-SPECIAL_IMAGE_TOKEN = 256
-
-
-class MultimodalLoss(nn.Module):
-    def __init__(self, dataset_type: type[TokenDataset | TokenLatentDataset]):
-        super().__init__()
-
-        self.__dataset_type = dataset_type
-        self.__ce_loss = nn.CrossEntropyLoss()
-        self.__mse_loss = nn.MSELoss()
-
-    def forward(self, outputs, targets):
-        batch_size = outputs.shape[0]
-        loss = torch.zeros(1, device=outputs.device)
-
-        # First TOKEN_DIM dimensions are token logits
-        token_logits = outputs[:, :TOKEN_DIM]
-
-        for i in range(batch_size):
-            target = targets[i]
-
-            if issubclass(self.__dataset_type, TokenDataset):
-                # Apply cross-entropy over token_logits to predict text token
-                loss = loss + self.__ce_loss(token_logits[i], target)
-
-            elif issubclass(self.__dataset_type, TokenLatentDataset):
-                # Apply cross-entropy over token_logits to predict token
-                loss = loss + self.__ce_loss(token_logits[i], target[0].long())
-
-                if int(target[0].item()) == SPECIAL_IMAGE_TOKEN:
-                    # Apply L2 loss on the next dimensions for the image
-                    image_output = outputs[i, TOKEN_DIM:]
-                    image_target = target[1:]
-                    loss = loss + self.__mse_loss(image_output, image_target)
-
-        return loss / batch_size
+OUT_DIM = 256
 
 
 class MLPModel(nn.Module):
@@ -137,18 +97,18 @@ class MLPCheckpoint:
     # Returns the average loss over the last N batches
     def train(
         self,
-        dataset: TokenDataset | TokenLatentDataset,
+        dataset: Dataset,
         num_epochs: int,
         batch_size: int,
         return_loss_over_n: int = 100,
         show_progress: bool = True,
     ):
-        loss_fn = MultimodalLoss(type(dataset))
+        loss_fn = nn.CrossEntropyLoss()
 
         # Last N losses
         loss_history = collections.deque(maxlen=return_loss_over_n)
 
-        # shuffle=True causes issues with the lazy dataset
+        # shuffle=True causes issues with lazy datasets
         dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
         progress = lambda x: tqdm(x) if show_progress else x

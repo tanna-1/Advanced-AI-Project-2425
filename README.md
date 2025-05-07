@@ -16,7 +16,6 @@ This repository includes code to predict text tokens and the weights of a CNN us
 ### Setup
 
 ```bash
-cd llm
 pip install .
 ```
 
