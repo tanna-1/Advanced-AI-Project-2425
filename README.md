@@ -20,33 +20,13 @@ It also includes code to predict weights of a larger CNN model using our model a
 pip install .
 ```
 
-### Training text prediction
+### Notebooks
 
-```bash
-advanced_ai_project optimize path/to/dataset.txt
-advanced_ai_project train path/to/dataset.txt
-```
+You can open any of the notebooks within the folder `notebooks` and either run all the cells or run the cells step-by-step.
 
-### Evaluating text prediction
+The cells are written in a way that they will resume training and optimization progress if study and/or checkpoint files already exist.
 
-```bash
-advanced_ai_project evaluate --start=0 --length=100
-advanced_ai_project evaluate --start='-100'
-advanced_ai_project autocomplete "Hi, my name is "
-```
-
-### Training hypernet
-
-```bash
-advanced_ai_project optimize_hypernet path/to/dataset.txt
-advanced_ai_project train_hypernet path/to/cifar10 --num-epochs 200
-```
-
-### Evaluating hypernet
-
-```bash
-advanced_ai_project evaluate_hypernet path/to/cifar10
-```
+You can change the file paths within the configuration section of the notebooks or you can delete the aforementioned files if you want to start training from scratch.
 
 ## References
 - Alpha Dropout & SELU: [Self-Normalizing Neural Networks](https://arxiv.org/abs/1706.02515)
