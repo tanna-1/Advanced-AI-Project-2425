@@ -10,13 +10,14 @@ The idea is inspired by the paper [Scaling MLPs: A Tale of Inductive Bias](https
 The architecture of the model is based on [AUNNs](https://gwern.net/aunn). The model is designed to predict anything from text tokens to weights of another model.
 
 This repository includes code to predict text tokens under the folder `text_prediction`.
-It also includes code to predict weights of a larger CNN model using our model as a hypernet under the folder `hypernet`.
+It also includes code to predict weights of a larger CNN model using our model as a [hypernetwork](https://arxiv.org/abs/1609.09106) under the folder `hypernet`.
 
 ## Usage
 
 ### Setup
 
 ```bash
+pip install "torch~=2.7.0" "torchvision~=0.22.0" torchaudio --index-url https://download.pytorch.org/whl/cu128
 pip install .
 ```
 

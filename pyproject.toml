@@ -8,3 +8,6 @@ dependencies = [
     "optuna~=4.3.0",
     "torchinfo~=1.8.0",
 ]
+
+[tool.setuptools]
+py-modules = ["advanced_ai_project"]
