@@ -23,11 +23,21 @@ pip install .
 
 ### Notebooks
 
-You can open any of the notebooks within the folder `notebooks` and either run all the cells or run the cells step-by-step.
+Follow these steps to work with the project notebooks:
 
-The cells are written in a way that they will resume training and optimization progress if study and/or checkpoint files already exist.
+1. **Prepare the text prediction dataset**
+   - Run the `text_prediction_data` notebook before running the `text_prediction` notebook.
+   - This is not necessary for the `hypernet` notebook as it automatically downloads the dataset.
 
-You can change the file paths within the configuration section of the notebooks or you can delete the aforementioned files if you want to start training from scratch.
+2. **Open a notebook**
+   - Navigate to the `notebooks` folder and open any notebook you wish to run.
+
+4. **Resume existing work**
+   - Notebooks automatically resume training and optimization if study/checkpoint files exist.
+
+5. **Modify configuration or start fresh**
+   - To change settings: Edit the configuration section within each notebook.
+   - To start from scratch: Delete any existing checkpoint or study files.
 
 ## References
 - Alpha Dropout & SELU: [Self-Normalizing Neural Networks](https://arxiv.org/abs/1706.02515)
