@@ -16,6 +16,20 @@ def train(
     return_loss_over_n: int = 100,
     show_progress: bool = True,
 ):
+    """
+    Train a hypernetwork model on the given dataset.
+    
+    Args:
+        ckpt (MLPCheckpoint): The checkpoint containing the MLP model to train.
+        dataset (Dataset): The dataset to train on.
+        num_epochs (int): Number of epochs to train for.
+        batch_size (int): Batch size for training.
+        return_loss_over_n (int, optional): Number of most recent batches to average loss over. Defaults to 100.
+        show_progress (bool, optional): Whether to show progress bars. Defaults to True.
+        
+    Returns:
+        float: The average loss over the last return_loss_over_n batches.
+    """
     device = ckpt.model.device
     criterion = nn.CrossEntropyLoss()
 

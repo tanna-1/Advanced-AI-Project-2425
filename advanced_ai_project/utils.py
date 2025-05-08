@@ -4,6 +4,17 @@ import torchvision.transforms as transforms
 
 
 def sample_top_k(logits: torch.Tensor, k: int, temperature: float) -> torch.Tensor:
+    """
+    Sample from the top-k logits of a distribution.
+    
+    Args:
+        logits (torch.Tensor): The logits to sample from.
+        k (int): Number of top logits to consider.
+        temperature (float): Temperature for scaling logits.
+        
+    Returns:
+        torch.Tensor: The sampled token index.
+    """
     assert k > 0, "k must be greater than 0"
     assert k <= logits.size(0), "k must be less than or equal to the number of logits"
 
@@ -20,6 +31,16 @@ def sample_top_k(logits: torch.Tensor, k: int, temperature: float) -> torch.Tens
 
 
 def get_cifar10_dataset(data_root: str, train: bool = True) -> datasets.CIFAR10:
+    """
+    Create a CIFAR-10 dataset with standard transforms.
+    
+    Args:
+        data_root (str): Root directory to store the dataset.
+        train (bool, optional): Whether to load the training set. Defaults to True.
+        
+    Returns:
+        datasets.CIFAR10: The CIFAR-10 dataset.
+    """
     transform = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
     )
@@ -29,6 +50,12 @@ def get_cifar10_dataset(data_root: str, train: bool = True) -> datasets.CIFAR10:
 
 
 def _get_torch_device() -> torch.device:
+    """
+    Get the best available torch device.
+    
+    Returns:
+        torch.device: The best available device.
+    """
     if torch.cuda.is_available():
         return torch.device(torch.cuda.current_device())
     elif torch.backends.mps.is_available():

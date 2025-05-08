@@ -35,6 +35,16 @@ def generate_param_info(modules_dict: dict[str, nn.Module]):
 
 
 def compute_weight_tensor(model: MLPModel, param_count: int) -> torch.Tensor:
+    """
+    Compute a weight tensor from the model output.
+    
+    Args:
+        model (MLPModel): The MLP model to generate weights from.
+        param_count (int): The total number of parameters needed.
+        
+    Returns:
+        torch.Tensor: A flattened tensor of normalized weights.
+    """
     index_tensor = torch.arange(
         0,
         ceil(param_count / OUT_DIM),

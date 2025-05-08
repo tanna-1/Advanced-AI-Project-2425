@@ -7,6 +7,17 @@ from ..model import MLPCheckpoint
 
 
 def evaluate(ckpt: MLPCheckpoint, dataset: Dataset, batch_size: int = 128):
+    """
+    Evaluate the performance of a hypernetwork model on a given dataset.
+    
+    Args:
+        ckpt (MLPCheckpoint): The checkpoint containing the MLP model to evaluate.
+        dataset (Dataset): The dataset to evaluate on.
+        batch_size (int, optional): Batch size for evaluation. Defaults to 128.
+        
+    Returns:
+        float: The accuracy percentage on the dataset.
+    """
     device = ckpt.model.device
     cnn_model = DynamicWeightCNN(num_classes=10).to(device)
 
