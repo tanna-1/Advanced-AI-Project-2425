@@ -9,5 +9,5 @@ dependencies = [
     "torchinfo~=1.8.0",
 ]
 
-[tool.setuptools]
-py-modules = ["advanced_ai_project"]
+[tool.setuptools.packages.find]
+include = ["advanced_ai_project*"]
