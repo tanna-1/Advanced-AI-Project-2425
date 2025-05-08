@@ -31,7 +31,7 @@ def train(
         float: The average loss over the last return_loss_over_n batches.
     """
     device = ckpt.model.device
-    criterion = nn.CrossEntropyLoss()
+    loss_fn = nn.CrossEntropyLoss()
 
     cnn_model = DynamicWeightCNN(num_classes=10).to(device)
     print(f"DynamicWeightCNN total params: {cnn_model.total_params}")
@@ -57,7 +57,7 @@ def train(
             outputs = cnn_model(inputs, weight_tensor)
 
             # Calculate the loss of the CNN model
-            loss = criterion(outputs, labels)
+            loss = loss_fn(outputs, labels)
             loss_history.append(loss.item())
 
             # This should optimize the MLP model to predict better weights for the CNN

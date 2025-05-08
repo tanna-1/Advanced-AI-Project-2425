@@ -7,7 +7,7 @@ from .utils import DEVICE
 from .blocks import InvertedBottleneckMLP, BinaryEncode
 
 # Model dimensions
-INPUT_DIM = 64
+INDEX_DIM = 64
 OUT_DIM = 256
 
 # Hidden width and depth are hardcoded as the optimizer always suggests the highest values
@@ -23,14 +23,14 @@ class MLPModel(nn.Module):
         expansion_factor: float,
         dropout: float,
         use_selu: bool,
-        input_dim: int = INPUT_DIM,
+        index_dim: int = INDEX_DIM,
         out_dim: int = OUT_DIM,
     ):
         super().__init__()
 
         self.seq = nn.Sequential(
-            BinaryEncode(input_dim),
-            nn.Linear(input_dim, hidden_width),
+            BinaryEncode(index_dim),
+            nn.Linear(index_dim, hidden_width),
             *[
                 InvertedBottleneckMLP(hidden_width, expansion_factor, dropout, use_selu)
                 for _ in range(hidden_depth)
