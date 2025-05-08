@@ -3,6 +3,8 @@ import argparse
 import torch
 from torchinfo import summary
 
+from advanced_ai_project.utils import get_cifar10_dataset
+
 from .text_prediction.train import train
 from .hyperparameters import (
     load_hyperparameters,
@@ -11,6 +13,8 @@ from .hyperparameters import (
 from .model import MLPCheckpoint
 from .text_prediction.dataset import ByteFileDataset, StringDataset
 from .text_prediction.evaluate import META_TRAINING_EPOCHS, evaluate, print_tokens
+from .hypernet.train import train as train_hypernet
+from .hypernet.evaluate import evaluate as evaluate_hypernet
 
 
 def optimize_operation(
@@ -34,6 +38,7 @@ def optimize_operation(
             n_trials=trials,
             num_epochs=num_epochs,
             batch_size=batch_size,
+            train_model="text_prediction",
         )
     except KeyboardInterrupt:
         print("Optimization interrupted.")
@@ -128,6 +133,84 @@ def model_info_operation(checkpoint_path: str, batch_size: int):
             (batch_size, 64), dtype=torch.int64, device=ckpt.model.device
         ),
     )
+
+
+def train_hypernet_operation(
+    dataset_path: str,
+    checkpoint_path: str,
+    study_path: str,
+    batch_size: int,
+    num_epochs: int,
+):
+    try:
+        ckpt = MLPCheckpoint.load(checkpoint_path)
+        print("Loaded existing checkpoint.")
+    except:
+        try:
+            ckpt = MLPCheckpoint.new_from_hyperparams(load_hyperparameters(study_path))
+            print("Created new checkpoint from hyperparameters.")
+        except:
+            print(
+                f"Neither checkpoint or the hyperparameter DB exists. Please run 'optimize' first."
+            )
+            return
+
+    print("Training hypernet model...")
+    ckpt.model.train()
+    avg_loss = train_hypernet(
+        ckpt,
+        dataset=get_cifar10_dataset(dataset_path, train=True),
+        num_epochs=num_epochs,
+        batch_size=batch_size,
+    )
+    print(f"Training complete with an average loss of {avg_loss}")
+
+    ckpt.save(checkpoint_path)
+    print(f"Model saved to {checkpoint_path}")
+
+    evaluate_hypernet_operation(
+        dataset_path,
+        checkpoint_path,
+    )
+
+
+def evaluate_hypernet_operation(
+    dataset_path: str,
+    checkpoint_path: str,
+):
+    print("Evaluating hypernet model...")
+    ckpt = MLPCheckpoint.load(checkpoint_path)
+    accuracy = evaluate_hypernet(
+        ckpt,
+        dataset=get_cifar10_dataset(dataset_path, train=False),
+    )
+    print(f"Test accuracy of the generated CNN: {accuracy:.2f}%")
+
+
+def optimize_hypernet_operation(
+    dataset_path: str,
+    checkpoint_path: str,
+    study_path: str,
+    batch_size: int,
+    num_epochs: int,
+    trials: int,
+):
+    if Path(checkpoint_path).exists():
+        print(f"Checkpoint file exists. Hyperparameters will not be optimized.")
+        return
+
+    print("Optimizing hyperparameters...")
+    try:
+        optimize_hyperparameters(
+            study_path,
+            get_cifar10_dataset(dataset_path, train=True),
+            n_trials=trials,
+            num_epochs=num_epochs,
+            batch_size=batch_size,
+            train_model="hypernet",
+        )
+    except KeyboardInterrupt:
+        print("Optimization interrupted.")
 
 
 def main():
@@ -232,6 +315,49 @@ def main():
         "--batch-size", type=int, default=1, help="Batch size for the model summary"
     )
 
+    train_hypernet = subparsers.add_parser(
+        "train_hypernet", help="Test the hypernet model"
+    )
+    train_hypernet.add_argument("dataset_path", help="Path to the dataset")
+    train_hypernet.add_argument(
+        "--study-path",
+        default="study.db",
+        help="Path to the database for loading hyperparameters",
+    )
+    train_hypernet.add_argument(
+        "--batch-size", type=int, default=4096, help="Batch size"
+    )
+    train_hypernet.add_argument(
+        "--num-epochs", type=int, default=2, help="Number of epochs"
+    )
+
+    evaluate_hypernet_parser = subparsers.add_parser(
+        "evaluate_hypernet", help="Evaluate the hypernet model"
+    )
+    evaluate_hypernet_parser.add_argument("dataset_path", help="Path to the dataset")
+
+    optimize_hypernet_parser = subparsers.add_parser(
+        "optimize_hypernet", help="Optimize hyperparameters for hypernet"
+    )
+    optimize_hypernet_parser.add_argument("dataset_path", help="Path to the dataset")
+    optimize_hypernet_parser.add_argument(
+        "--trials",
+        type=int,
+        default=100,
+        help="Number of trials for hyperparameter optimization",
+    )
+    optimize_hypernet_parser.add_argument(
+        "--study-path",
+        default="study.db",
+        help="Path to the database for storing optimization studies",
+    )
+    optimize_hypernet_parser.add_argument(
+        "--batch-size", type=int, default=4096, help="Batch size"
+    )
+    optimize_hypernet_parser.add_argument(
+        "--num-epochs", type=int, default=2, help="Number of epochs"
+    )
+
     args = parser.parse_args()
     operations = {
         "optimize": lambda: optimize_operation(
@@ -259,6 +385,25 @@ def main():
         ),
         "model_info": lambda: model_info_operation(
             args.checkpoint_path, args.batch_size
+        ),
+        "train_hypernet": lambda: train_hypernet_operation(
+            args.dataset_path,
+            args.checkpoint_path,
+            args.study_path,
+            args.batch_size,
+            args.num_epochs,
+        ),
+        "evaluate_hypernet": lambda: evaluate_hypernet_operation(
+            args.dataset_path,
+            args.checkpoint_path,
+        ),
+        "optimize_hypernet": lambda: optimize_hypernet_operation(
+            args.dataset_path,
+            args.checkpoint_path,
+            args.study_path,
+            args.batch_size,
+            args.num_epochs,
+            args.trials,
         ),
     }
     operations[args.operation]()

@@ -173,7 +173,8 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-# Checkpoint files
+# Checkpoint files and datasets
+data/
 *.pt
 *.db
 *.db-journal

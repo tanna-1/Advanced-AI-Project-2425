@@ -1,4 +1,6 @@
 import torch
+import torchvision.datasets as datasets
+import torchvision.transforms as transforms
 
 
 def sample_top_k(logits: torch.Tensor, k: int, temperature: float) -> torch.Tensor:
@@ -15,6 +17,15 @@ def sample_top_k(logits: torch.Tensor, k: int, temperature: float) -> torch.Tens
     # Sample from the distribution
     sampled_idx = int(torch.multinomial(probs, 1).item())
     return top_k_indices[sampled_idx]
+
+
+def get_cifar10_dataset(data_root: str, train: bool = True) -> datasets.CIFAR10:
+    transform = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+    )
+    return datasets.CIFAR10(
+        root=data_root, train=train, download=True, transform=transform
+    )
 
 
 def _get_torch_device() -> torch.device:

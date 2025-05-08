@@ -14,8 +14,11 @@ def print_tokens(
     tokens: Iterable[str],
 ):
     for token in tokens:
+        if token == "\r":
+            continue
+
         token = (
-            token if token.isprintable() or token in "\r\n" else f"\\x{ord(token):02x}"
+            token if token.isprintable() or token == "\n" else f"\\x{ord(token):02x}"
         )
         print(token, end="", flush=True)
 

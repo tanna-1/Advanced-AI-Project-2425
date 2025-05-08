@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from tkinter import HIDDEN
 from typing import Any
 import torch
 import torch.nn as nn
@@ -13,7 +12,7 @@ OUT_DIM = 256
 
 # Hidden width and depth are hardcoded as the optimizer always suggests the highest values
 HIDDEN_WIDTH = 256
-HIDDEN_DEPTH = 8
+HIDDEN_DEPTH = 4
 
 
 class MLPModel(nn.Module):

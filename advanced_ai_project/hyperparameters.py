@@ -1,12 +1,18 @@
 from torch.utils.data import Dataset
-from typing import Any
+from typing import Any, Literal
 import optuna
 
-from .text_prediction.train import train
 from .model import MLPCheckpoint
+from .text_prediction.train import train as train_text_prediction
+from .hypernet.train import train as train_hypernet
 
 
-def _optuna_objective_wrap(dataset: Dataset, num_epochs: int, batch_size: int):
+def _optuna_objective_wrap(
+    dataset: Dataset,
+    num_epochs: int,
+    batch_size: int,
+    train_function,
+):
 
     def _optuna_objective(trial: optuna.Trial) -> float:
         nonlocal dataset
@@ -21,7 +27,7 @@ def _optuna_objective_wrap(dataset: Dataset, num_epochs: int, batch_size: int):
             "use_selu": trial.suggest_categorical("use_selu", [True, False]),
             "lr": trial.suggest_float("lr", 1e-5, 1e-3),
         }
-        return train(
+        return train_function(
             MLPCheckpoint.new_from_hyperparams(params),
             dataset=dataset,
             num_epochs=num_epochs,
@@ -44,6 +50,7 @@ def optimize_hyperparameters(
     n_trials: int,
     num_epochs: int,
     batch_size: int,
+    train_model: Literal["text_prediction", "hypernet"],
 ):
     study = optuna.create_study(
         direction="minimize",
@@ -52,9 +59,16 @@ def optimize_hyperparameters(
         load_if_exists=True,
     )
 
+    train_function = (
+        train_hypernet if train_model == "hypernet" else train_text_prediction
+    )
+
     study.optimize(
         _optuna_objective_wrap(
-            dataset=dataset, num_epochs=num_epochs, batch_size=batch_size
+            dataset=dataset,
+            num_epochs=num_epochs,
+            batch_size=batch_size,
+            train_function=train_function,
         ),
         n_trials=n_trials,
     )
