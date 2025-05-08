@@ -10,6 +10,10 @@ from .blocks import InvertedBottleneckMLP, BinaryEncode
 INPUT_DIM = 64
 OUT_DIM = 256
 
+# Hidden width and depth are hardcoded as the optimizer always suggests the highest values
+HIDDEN_WIDTH = 256
+HIDDEN_DEPTH = 4
+
 
 class MLPModel(nn.Module):
     def __init__(
@@ -73,8 +77,8 @@ class MLPCheckpoint:
     @staticmethod
     def new_from_hyperparams(hyperparameters: dict[str, Any]):
         model = MLPModel(
-            hidden_depth=hyperparameters["hidden_depth"],
-            hidden_width=hyperparameters["hidden_width"],
+            hidden_depth=HIDDEN_DEPTH,
+            hidden_width=HIDDEN_WIDTH,
             expansion_factor=hyperparameters["expansion_factor"],
             dropout=hyperparameters["dropout"],
             use_selu=hyperparameters["use_selu"],

@@ -37,8 +37,6 @@ def _optuna_objective_wrap(
             "dropout": trial.suggest_float("dropout", 0.0, 0.5, step=0.1),
             "use_selu": trial.suggest_categorical("use_selu", [True, False]),
             "lr": trial.suggest_float("lr", 1e-5, 1e-3),
-            "hidden_depth": trial.suggest_int("hidden_depth", 4, 16, step=2),
-            "hidden_width": trial.suggest_int("hidden_width", 128, 512, step=32),
         }
         return train_function(
             MLPCheckpoint.new_from_hyperparams(params),
