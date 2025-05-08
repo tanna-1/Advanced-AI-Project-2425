@@ -16,10 +16,9 @@ class ByteFileDataset(TokenDataset):
         self.__file_length = len(self.__mapped_file)
 
         if length_cutoff is not None:
-            if length_cutoff > self.__file_length:
-                raise ValueError(
-                    f"length_cutoff {length_cutoff} is greater than file length {self.__file_length}"
-                )
+            assert (
+                length_cutoff < self.__file_length
+            ), f"length_cutoff {length_cutoff} is greater than file length {self.__file_length}"
             self.__file_length = length_cutoff
 
     def __len__(self) -> int:

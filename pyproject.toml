@@ -8,6 +8,3 @@ dependencies = [
     "optuna~=4.3.0",
     "torchinfo~=1.8.0",
 ]
-
-[project.scripts]
-"advanced_ai_project" = "advanced_ai_project.cli:main"
