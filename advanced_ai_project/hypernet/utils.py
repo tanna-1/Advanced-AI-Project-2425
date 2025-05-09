@@ -5,7 +5,7 @@ import torch.nn as nn
 from ..model import OUT_DIM, MLPModel
 
 
-def generate_param_info(modules_dict: dict[str, nn.Module]):
+def generate_weight_info(modules_dict: dict[str, nn.Module]):
     """
     Generate parameter shapes and sizes for a given dictionary of modules.
 

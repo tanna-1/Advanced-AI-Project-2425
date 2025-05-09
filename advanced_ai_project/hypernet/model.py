@@ -1,6 +1,7 @@
+import torch
 import torch.nn as nn
 
-from .utils import generate_param_info
+from .utils import generate_weight_info
 
 
 class DynamicWeightCNN(nn.Module):
@@ -8,70 +9,43 @@ class DynamicWeightCNN(nn.Module):
         super(DynamicWeightCNN, self).__init__()
         self.num_classes = num_classes
 
-        # Create temporary modules to get parameter sizes
-        temp_modules = {
-            "conv1": nn.Conv2d(3, 32, kernel_size=3, padding=1),
-            "conv2": nn.Conv2d(32, 64, kernel_size=3, padding=1),
-            "conv3": nn.Conv2d(64, 128, kernel_size=3, padding=1),
-            "fc1": nn.Linear(128 * 4 * 4, 512),
-            "fc2": nn.Linear(512, num_classes),
-        }
-
-        # Generate parameter information
-        self.param_shapes, self.param_sizes, self.total_params = generate_param_info(
-            temp_modules
+        # Generate weight information
+        self.param_shapes, self.param_sizes, self.total_params = generate_weight_info(
+            {
+                "conv1": nn.Conv2d(3, 32, kernel_size=3, padding=1),
+                "conv2": nn.Conv2d(32, 64, kernel_size=3, padding=1),
+                "conv3": nn.Conv2d(64, 128, kernel_size=3, padding=1),
+                "fc1": nn.Linear(128 * 4 * 4, 512),
+                "fc2": nn.Linear(512, num_classes),
+            }
         )
+
+    def __extract_weight(
+        self, weight_tensor: torch.Tensor, offset: int, name: str
+    ) -> tuple[torch.Tensor, int]:
+        w = weight_tensor[offset : offset + self.param_sizes[name]].reshape(
+            self.param_shapes[name]
+        )
+        offset += self.param_sizes[name]
+        return w, offset
 
     def forward(self, x, weight_tensor):
-        # Ensure weight tensor has enough elements
-        if weight_tensor.numel() < self.total_params:
-            raise ValueError(
-                f"Weight tensor needs {self.total_params} elements but has {weight_tensor.numel()}"
-            )
-
-        # Extract weights while preserving gradient flow
         offset = 0
 
-        # Conv1 weights and bias
-        conv1_w = weight_tensor[offset : offset + self.param_sizes["conv1_w"]].reshape(
-            self.param_shapes["conv1_w"]
-        )
-        offset += self.param_sizes["conv1_w"]
-        conv1_b = weight_tensor[offset : offset + self.param_sizes["conv1_b"]]
-        offset += self.param_sizes["conv1_b"]
+        # Extract weights
+        conv1_w, offset = self.__extract_weight(weight_tensor, offset, "conv1_w")
+        conv2_w, offset = self.__extract_weight(weight_tensor, offset, "conv2_w")
+        conv3_w, offset = self.__extract_weight(weight_tensor, offset, "conv3_w")
+        fc1_w, offset = self.__extract_weight(weight_tensor, offset, "fc1_w")
+        fc2_w, offset = self.__extract_weight(weight_tensor, offset, "fc2_w")
 
-        # Conv2 weights and bias
-        conv2_w = weight_tensor[offset : offset + self.param_sizes["conv2_w"]].reshape(
-            self.param_shapes["conv2_w"]
-        )
-        offset += self.param_sizes["conv2_w"]
-        conv2_b = weight_tensor[offset : offset + self.param_sizes["conv2_b"]]
-        offset += self.param_sizes["conv2_b"]
+        # Extract biases
+        conv1_b, offset = self.__extract_weight(weight_tensor, offset, "conv1_b")
+        conv2_b, offset = self.__extract_weight(weight_tensor, offset, "conv2_b")
+        conv3_b, offset = self.__extract_weight(weight_tensor, offset, "conv3_b")
+        fc1_b, offset = self.__extract_weight(weight_tensor, offset, "fc1_b")
+        fc2_b, offset = self.__extract_weight(weight_tensor, offset, "fc2_b")
 
-        # Conv3 weights and bias
-        conv3_w = weight_tensor[offset : offset + self.param_sizes["conv3_w"]].reshape(
-            self.param_shapes["conv3_w"]
-        )
-        offset += self.param_sizes["conv3_w"]
-        conv3_b = weight_tensor[offset : offset + self.param_sizes["conv3_b"]]
-        offset += self.param_sizes["conv3_b"]
-
-        # FC1 weights and bias
-        fc1_w = weight_tensor[offset : offset + self.param_sizes["fc1_w"]].reshape(
-            self.param_shapes["fc1_w"]
-        )
-        offset += self.param_sizes["fc1_w"]
-        fc1_b = weight_tensor[offset : offset + self.param_sizes["fc1_b"]]
-        offset += self.param_sizes["fc1_b"]
-
-        # FC2 weights and bias
-        fc2_w = weight_tensor[offset : offset + self.param_sizes["fc2_w"]].reshape(
-            self.param_shapes["fc2_w"]
-        )
-        offset += self.param_sizes["fc2_w"]
-        fc2_b = weight_tensor[offset : offset + self.param_sizes["fc2_b"]]
-
-        # Define forward pass with functional operations
         # First conv block
         x = nn.functional.conv2d(x, conv1_w, bias=conv1_b, padding=1)
         x = nn.functional.relu(x)
