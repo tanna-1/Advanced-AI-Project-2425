@@ -1,30 +1,29 @@
 from torch.utils.data import Dataset
-from typing import Any, Literal
+from typing import Any, Callable
 import optuna
 
 from .model import MLPCheckpoint
-from .text_prediction.train import train as train_text_prediction
-from .hypernet.train import train as train_hypernet
 
 
 def _optuna_objective_wrap(
     dataset: Dataset,
     num_epochs: int,
     batch_size: int,
-    train_function,
+    train_function: Callable[..., float],
 ):
     """
     Create an Optuna objective function with fixed dataset and training parameters.
-    
+
     Args:
         dataset (Dataset): Dataset to use for training.
         num_epochs (int): Number of epochs to train for.
         batch_size (int): Batch size for training.
         train_function: Function to use for training the model.
-        
+
     Returns:
         callable: An Optuna objective function.
     """
+
     def _optuna_objective(trial: optuna.Trial) -> float:
         nonlocal dataset
         nonlocal num_epochs
@@ -52,10 +51,10 @@ def _optuna_objective_wrap(
 def load_hyperparameters(db_path: str) -> dict[str, Any]:
     """
     Load the best hyperparameters from an Optuna study.
-    
+
     Args:
         db_path (str): Path to the SQLite database containing the Optuna study.
-        
+
     Returns:
         dict[str, Any]: Dictionary of best hyperparameters.
     """
@@ -70,28 +69,24 @@ def optimize_hyperparameters(
     n_trials: int,
     num_epochs: int,
     batch_size: int,
-    train_model: Literal["text_prediction", "hypernet"],
+    train_function: Callable[..., float],
 ):
     """
     Optimize hyperparameters using Optuna.
-    
+
     Args:
         db_path (str): Path to store SQLite database with Optuna study.
         dataset (Dataset): Dataset to use for training during optimization.
         n_trials (int): Number of trials to run.
         num_epochs (int): Number of epochs per trial.
         batch_size (int): Batch size for training.
-        train_model (Literal["text_prediction", "hypernet"]): Model type to optimize.
+        train_function (Callable[..., float]): Function to use for training the model.
     """
     study = optuna.create_study(
         direction="minimize",
         storage=f"sqlite:///{db_path}",
         study_name="hyperparameters",
         load_if_exists=True,
-    )
-
-    train_function = (
-        train_hypernet if train_model == "hypernet" else train_text_prediction
     )
 
     study.optimize(
