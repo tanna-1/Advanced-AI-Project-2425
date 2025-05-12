@@ -17,7 +17,7 @@ It also includes code to predict weights of a larger CNN model using our model a
 ### Setup
 
 ```bash
-pip install "torch~=2.7.0" "torchvision~=0.22.0" torchaudio --index-url https://download.pytorch.org/whl/cu128
+pip install "torch~=2.7.0" "torchvision~=0.22.0" --index-url https://download.pytorch.org/whl/cu128
 pip install .
 ```
 
@@ -25,17 +25,14 @@ pip install .
 
 Follow these steps to work with the project notebooks:
 
-1. **Prepare the text prediction dataset**
-   - Run the `text_prediction_data` notebook before running the `text_prediction` notebook.
-   - This is not necessary for the `hypernet` notebook as it automatically downloads the dataset.
-
-2. **Open a notebook**
+1. **Open a notebook**
    - Navigate to the `notebooks` folder and open any notebook you wish to run.
+   - You might want to adjust the training and optimization parameters if you want to quickly demo the project.
 
-4. **Resume existing work**
+1. **Resume existing work**
    - Notebooks automatically resume training and optimization if study/checkpoint files exist.
 
-5. **Modify configuration or start fresh**
+1. **Modify configuration or start fresh**
    - To change settings: Edit the configuration section within each notebook.
    - To start from scratch: Delete any existing checkpoint or study files.
 
